@@ -356,6 +356,9 @@ func ValidateService(service *api.Service) errs.ErrorList {
 	if labels.Set(service.Selector).AsSelector().Empty() {
 		allErrs = append(allErrs, errs.NewFieldRequired("selector", service.Selector))
 	}
+	for k := range service.Labels {
+		allErrs = append(allErrs, ValidateLabel(k)...)
+	}
 	return allErrs
 }
 
@@ -385,6 +388,9 @@ func ValidateReplicationControllerState(state *api.ReplicationControllerState) e
 	labels := labels.Set(state.PodTemplate.Labels)
 	if !selector.Matches(labels) {
 		allErrs = append(allErrs, errs.NewFieldInvalid("podTemplate.labels", state.PodTemplate))
+	}
+	for k := range labels {
+		allErrs = append(allErrs, ValidateLabel(k)...)
 	}
 	if state.Replicas < 0 {
 		allErrs = append(allErrs, errs.NewFieldInvalid("replicas", state.Replicas))
