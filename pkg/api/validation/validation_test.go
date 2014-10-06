@@ -19,6 +19,7 @@ package validation
 import (
 	"strings"
 	"testing"
+	"fmt"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
