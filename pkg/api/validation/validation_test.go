@@ -19,12 +19,12 @@ package validation
 import (
 	"strings"
 	"testing"
-	"fmt"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"fmt"
 )
 
 func expectPrefix(t *testing.T, prefix string, errs errors.ErrorList) {
@@ -667,7 +667,6 @@ func TestValidateReplicationController(t *testing.T) {
 				PodTemplate:     validPodTemplate,
 			},
 		},
-<<<<<<< HEAD
 		"invalid_label 2": {
 			JSONBase: api.JSONBase{ID: "abc-123", Namespace: api.NamespaceDefault},
 			Labels: map[string]string{
@@ -687,6 +686,8 @@ func TestValidateReplicationController(t *testing.T) {
 		}
 		for i := range errs {
 			field := errs[i].(errors.ValidationError).Field
+
+			fmt.Println(field)
 
 			if !strings.HasPrefix(field, "desiredState.podTemplate.") &&
 				field != "id" &&
