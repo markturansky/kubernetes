@@ -24,6 +24,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"regexp"
 )
 
 func validateVolumes(volumes []api.Volume) (util.StringSet, errs.ErrorList) {
@@ -317,6 +318,19 @@ func ValidatePod(pod *api.Pod) errs.ErrorList {
 		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", pod.Namespace))
 	}
 	allErrs = append(allErrs, ValidatePodState(&pod.DesiredState).Prefix("desiredState")...)
+	for k := range pod.Labels {
+		allErrs = append(allErrs, ValidateLabel(k)...)
+	}
+	return allErrs
+}
+
+func ValidateLabel(label string) errs.ErrorList {
+	allErrs := errs.ErrorList{}
+	re := regexp.MustCompile("[^A-Za-z0-9:/\\._]") // RFC_952 characters only
+	found := re.FindString(label)
+	if found != "" {
+		allErrs = append(allErrs, errs.NewFieldNotSupported("label", found))
+	}
 	return allErrs
 }
 
@@ -355,6 +369,9 @@ func ValidateReplicationController(controller *api.ReplicationController) errs.E
 		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", controller.Namespace))
 	}
 	allErrs = append(allErrs, ValidateReplicationControllerState(&controller.DesiredState).Prefix("desiredState")...)
+	for k := range controller.Labels {
+		allErrs = append(allErrs, ValidateLabel(k)...)
+	}
 	return allErrs
 }
 

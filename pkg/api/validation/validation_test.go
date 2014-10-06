@@ -19,6 +19,7 @@ package validation
 import (
 	"strings"
 	"testing"
+	"fmt"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -413,6 +414,21 @@ func TestValidatePod(t *testing.T) {
 	if len(errs) != 1 {
 		t.Errorf("Unexpected error list: %#v", errs)
 	}
+
+	errs = ValidatePod(&api.Pod{
+		JSONBase: api.JSONBase{ID: "foo", Namespace: api.NamespaceDefault},
+		Labels: map[string]string{
+			"RFC_952_chars_only=EqualsNotSupported": "bar",
+			"RFC_952_chars_only*AsteriskNotSupported": "bar",
+			"RFC_952_chars_only^AndManyOthers": "bar",
+		},
+		DesiredState: api.PodState{
+			Manifest: api.ContainerManifest{Version: "v1beta1", ID: "abc"},
+		},
+	})
+	if len(errs) != 3 {
+		t.Errorf("Unexpected non-zero error list: %#v", errs)
+	}
 }
 
 func TestValidateService(t *testing.T) {
@@ -556,6 +572,9 @@ func TestValidateReplicationController(t *testing.T) {
 	successCases := []api.ReplicationController{
 		{
 			JSONBase: api.JSONBase{ID: "abc", Namespace: api.NamespaceDefault},
+			Labels: map[string]string{
+				"foo": "bar",
+			},
 			DesiredState: api.ReplicationControllerState{
 				ReplicaSelector: validSelector,
 				PodTemplate:     validPodTemplate,
@@ -616,7 +635,18 @@ func TestValidateReplicationController(t *testing.T) {
 				ReplicaSelector: validSelector,
 			},
 		},
+		"invalid_label": {
+			JSONBase: api.JSONBase{ID: "abc-123", Namespace: api.NamespaceDefault},
+			Labels: map[string]string{
+				"RFC_952_chars_only=EqualsNotSupported": "bar",
+			},
+			DesiredState: api.ReplicationControllerState{
+				ReplicaSelector: validSelector,
+				PodTemplate:     validPodTemplate,
+			},
+		},
 	}
+
 	for k, v := range errorCases {
 		errs := ValidateReplicationController(&v)
 		if len(errs) == 0 {
@@ -624,12 +654,14 @@ func TestValidateReplicationController(t *testing.T) {
 		}
 		for i := range errs {
 			field := errs[i].(errors.ValidationError).Field
+
 			if !strings.HasPrefix(field, "desiredState.podTemplate.") &&
 				field != "id" &&
 				field != "namespace" &&
 				field != "desiredState.replicaSelector" &&
-				field != "desiredState.replicas" {
-				t.Errorf("%s: missing prefix for: %v", k, errs[i])
+				field != "desiredState.replicas" &&
+				field != "label" {
+					t.Errorf("%s: missing prefix for: %v", k, errs[i])
 			}
 		}
 	}
