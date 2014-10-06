@@ -19,13 +19,11 @@ package validation
 import (
 	"strings"
 	"testing"
-	"fmt"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"fmt"
 )
 
 func expectPrefix(t *testing.T, prefix string, errs errors.ErrorList) {
