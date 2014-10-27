@@ -792,10 +792,10 @@ func TestEtcdListControllers(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.ReplicationController{ObjectMeta: api.ObjectMeta{Name: "foo"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.ReplicationController{Metadata: api.ObjectMeta{Name: "foo"}}),
 					},
 					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.ReplicationController{ObjectMeta: api.ObjectMeta{Name: "bar"}}),
+						Value: runtime.EncodeOrDie(latest.Codec, &api.ReplicationController{Metadata: api.ObjectMeta{Name: "bar"}}),
 					},
 				},
 			},
@@ -808,7 +808,7 @@ func TestEtcdListControllers(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if len(controllers.Items) != 2 || controllers.Items[0].Name != "foo" || controllers.Items[1].Name != "bar" {
+	if len(controllers.Items) != 2 || controllers.Items[0].Metadata.Name != "foo" || controllers.Items[1].Metadata.Name != "bar" {
 		t.Errorf("Unexpected controller list: %#v", controllers)
 	}
 }
@@ -823,8 +823,8 @@ func TestEtcdGetControllerDifferentNamespace(t *testing.T) {
 	key1, _ := makeControllerKey(ctx1, "foo")
 	key2, _ := makeControllerKey(ctx2, "foo")
 
-	fakeClient.Set(key1, runtime.EncodeOrDie(latest.Codec, &api.ReplicationController{ObjectMeta: api.ObjectMeta{Namespace: "default", Name: "foo"}}), 0)
-	fakeClient.Set(key2, runtime.EncodeOrDie(latest.Codec, &api.ReplicationController{ObjectMeta: api.ObjectMeta{Namespace: "other", Name: "foo"}}), 0)
+	fakeClient.Set(key1, runtime.EncodeOrDie(latest.Codec, &api.ReplicationController{Metadata: api.ObjectMeta{Namespace: "default", Name: "foo"}}), 0)
+	fakeClient.Set(key2, runtime.EncodeOrDie(latest.Codec, &api.ReplicationController{Metadata: api.ObjectMeta{Namespace: "other", Name: "foo"}}), 0)
 
 	registry := NewTestEtcdRegistry(fakeClient)
 
@@ -832,10 +832,10 @@ func TestEtcdGetControllerDifferentNamespace(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if ctrl1.Name != "foo" {
+	if ctrl1.Metadata.Name != "foo" {
 		t.Errorf("Unexpected controller: %#v", ctrl1)
 	}
-	if ctrl1.Namespace != "default" {
+	if ctrl1.Metadata.Namespace != "default" {
 		t.Errorf("Unexpected controller: %#v", ctrl1)
 	}
 
@@ -843,10 +843,10 @@ func TestEtcdGetControllerDifferentNamespace(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if ctrl2.Name != "foo" {
+	if ctrl2.Metadata.Name != "foo" {
 		t.Errorf("Unexpected controller: %#v", ctrl2)
 	}
-	if ctrl2.Namespace != "other" {
+	if ctrl2.Metadata.Namespace != "other" {
 		t.Errorf("Unexpected controller: %#v", ctrl2)
 	}
 
@@ -856,14 +856,14 @@ func TestEtcdGetController(t *testing.T) {
 	ctx := api.NewDefaultContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
 	key, _ := makeControllerKey(ctx, "foo")
-	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.ReplicationController{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.ReplicationController{Metadata: api.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcdRegistry(fakeClient)
 	ctrl, err := registry.GetController(ctx, "foo")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if ctrl.Name != "foo" {
+	if ctrl.Metadata.Name != "foo" {
 		t.Errorf("Unexpected controller: %#v", ctrl)
 	}
 }
@@ -912,7 +912,7 @@ func TestEtcdCreateController(t *testing.T) {
 	registry := NewTestEtcdRegistry(fakeClient)
 	key, _ := makeControllerKey(ctx, "foo")
 	err := registry.CreateController(ctx, &api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{
+		Metadata: api.ObjectMeta{
 			Name: "foo",
 		},
 	})
@@ -929,7 +929,7 @@ func TestEtcdCreateController(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if ctrl.Name != "foo" {
+	if ctrl.Metadata.Name != "foo" {
 		t.Errorf("Unexpected pod: %#v %s", ctrl, resp.Node.Value)
 	}
 }
@@ -938,11 +938,11 @@ func TestEtcdCreateControllerAlreadyExisting(t *testing.T) {
 	ctx := api.NewDefaultContext()
 	fakeClient := tools.NewFakeEtcdClient(t)
 	key, _ := makeControllerKey(ctx, "foo")
-	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.ReplicationController{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.ReplicationController{Metadata: api.ObjectMeta{Name: "foo"}}), 0)
 
 	registry := NewTestEtcdRegistry(fakeClient)
 	err := registry.CreateController(ctx, &api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{
+		Metadata: api.ObjectMeta{
 			Name: "foo",
 		},
 	})
@@ -956,11 +956,11 @@ func TestEtcdUpdateController(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.TestIndex = true
 	key, _ := makeControllerKey(ctx, "foo")
-	resp, _ := fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.ReplicationController{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
+	resp, _ := fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.ReplicationController{Metadata: api.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcdRegistry(fakeClient)
 	err := registry.UpdateController(ctx, &api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: strconv.FormatUint(resp.Node.ModifiedIndex, 10)},
-		DesiredState: api.ReplicationControllerState{
+		Metadata: api.ObjectMeta{Name: "foo", ResourceVersion: strconv.FormatUint(resp.Node.ModifiedIndex, 10)},
+		Spec: api.ReplicationControllerSpec{
 			Replicas: 2,
 		},
 	})
@@ -969,7 +969,7 @@ func TestEtcdUpdateController(t *testing.T) {
 	}
 
 	ctrl, err := registry.GetController(ctx, "foo")
-	if ctrl.DesiredState.Replicas != 2 {
+	if ctrl.Spec.Replicas != 2 {
 		t.Errorf("Unexpected controller: %#v", ctrl)
 	}
 }

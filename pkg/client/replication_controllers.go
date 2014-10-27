@@ -74,11 +74,11 @@ func (c *replicationControllers) Create(controller *api.ReplicationController) (
 // Update updates an existing replication controller.
 func (c *replicationControllers) Update(controller *api.ReplicationController) (result *api.ReplicationController, err error) {
 	result = &api.ReplicationController{}
-	if len(controller.ResourceVersion) == 0 {
+	if len(controller.TypeMeta.APIVersion) == 0 {
 		err = fmt.Errorf("invalid update object, missing resource version: %v", controller)
 		return
 	}
-	err = c.r.Put().Namespace(c.ns).Path("replicationControllers").Path(controller.Name).Body(controller).Do().Into(result)
+	err = c.r.Put().Namespace(c.ns).Path("replicationControllers").Path(controller.Metadata.Name).Body(controller).Do().Into(result)
 	return
 }
 

@@ -134,14 +134,14 @@ func Update(ctx api.Context, name string, client client.Interface, updatePeriod 
 	}
 
 	if len(imageName) != 0 {
-		controller.DesiredState.PodTemplate.DesiredState.Manifest.Containers[0].Image = imageName
-		controller, err = client.ReplicationControllers(controller.Namespace).Update(controller)
+		controller.Spec.PodTemplate.DesiredState.Manifest.Containers[0].Image = imageName
+		controller, err = client.ReplicationControllers(controller.Metadata.Namespace).Update(controller)
 		if err != nil {
 			return err
 		}
 	}
 
-	s := labels.Set(controller.DesiredState.ReplicaSelector).AsSelector()
+	s := labels.Set(controller.Spec.Selector).AsSelector()
 
 	podList, err := client.Pods(api.Namespace(ctx)).List(s)
 	if err != nil {
@@ -181,7 +181,7 @@ func ResizeController(ctx api.Context, name string, replicas int, client client.
 	if err != nil {
 		return err
 	}
-	controller.DesiredState.Replicas = replicas
+	controller.Spec.Replicas = replicas
 	controllerOut, err := client.ReplicationControllers(api.Namespace(ctx)).Update(controller)
 	if err != nil {
 		return err
@@ -248,13 +248,14 @@ func RunController(ctx api.Context, image, name string, replicas int, client cli
 		return err
 	}
 	controller := &api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{
+		Metadata: api.ObjectMeta{
 			Name: name,
 		},
-		DesiredState: api.ReplicationControllerState{
+		Spec: api.ReplicationControllerSpec{
 			Replicas: replicas,
-			ReplicaSelector: map[string]string{
+			Selector: map[string]string{
 				"name": name,
+				"simpleService": name,
 			},
 			PodTemplate: api.PodTemplate{
 				DesiredState: api.PodState{
@@ -326,8 +327,8 @@ func DeleteController(ctx api.Context, name string, client client.Interface) err
 	if err != nil {
 		return err
 	}
-	if controller.DesiredState.Replicas != 0 {
-		return fmt.Errorf("controller has non-zero replicas (%d), please stop it first", controller.DesiredState.Replicas)
+	if controller.Spec.Replicas != 0 {
+		return fmt.Errorf("controller has non-zero replicas (%d), please stop it first", controller.Spec.Replicas)
 	}
 	return client.ReplicationControllers(api.Namespace(ctx)).Delete(name)
 }

@@ -550,6 +550,9 @@ type ReplicationControllerSpec struct {
 	// Template is a reference to an object that describes the pod that will be created if
 	// insufficient replicas are detected.
 	Template ObjectReference `json:"template,omitempty" yaml:"template,omitempty"`
+
+	// PodTemplate definition in spec.  Big refactor towards Template above.
+	PodTemplate PodTemplate `json:"podTemplate,omitempty" yaml:"podTemplate,omitempty"`
 }
 
 // ReplicationControllerStatus represents the current status of a replication

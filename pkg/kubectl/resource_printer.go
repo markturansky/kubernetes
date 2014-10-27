@@ -211,8 +211,8 @@ func printPodList(podList *api.PodList, w io.Writer) error {
 
 func printReplicationController(controller *api.ReplicationController, w io.Writer) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%d\n",
-		controller.Name, makeImageList(controller.DesiredState.PodTemplate.DesiredState.Manifest),
-		labels.Set(controller.DesiredState.ReplicaSelector), controller.DesiredState.Replicas)
+		controller.Metadata.Name, makeImageList(controller.Spec.PodTemplate.DesiredState.Manifest),
+		labels.Set(controller.Spec.Selector), controller.Spec.Replicas)
 	return err
 }
 

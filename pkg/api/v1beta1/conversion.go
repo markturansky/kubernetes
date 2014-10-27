@@ -211,17 +211,17 @@ func init() {
 			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.ObjectMeta, &out.TypeMeta, 0); err != nil {
+			if err := s.Convert(&in.Metadata, &out.TypeMeta, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.Labels, &out.Labels, 0); err != nil {
+			if err := s.Convert(&in.Metadata.Labels, &out.Labels, 0); err != nil {
 				return err
 			}
 
-			if err := s.Convert(&in.DesiredState, &out.DesiredState, 0); err != nil {
+			if err := s.Convert(&in.Spec.PodTemplate.DesiredState, &out.DesiredState, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.CurrentState, &out.CurrentState, 0); err != nil {
+			if err := s.Convert(&in.Status, &out.CurrentState, 0); err != nil {
 				return err
 			}
 			return nil
@@ -230,17 +230,17 @@ func init() {
 			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.TypeMeta, &out.ObjectMeta, 0); err != nil {
+			if err := s.Convert(&in.TypeMeta, &out.Metadata, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.Labels, &out.Labels, 0); err != nil {
+			if err := s.Convert(&in.Labels, &out.Metadata.Labels, 0); err != nil {
 				return err
 			}
 
-			if err := s.Convert(&in.DesiredState, &out.DesiredState, 0); err != nil {
+			if err := s.Convert(&in.DesiredState, &out.Spec.PodTemplate.DesiredState, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.CurrentState, &out.CurrentState, 0); err != nil {
+			if err := s.Convert(&in.CurrentState, &out.Status, 0); err != nil {
 				return err
 			}
 			return nil

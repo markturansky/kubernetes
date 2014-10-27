@@ -59,27 +59,27 @@ func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan runtime.Obje
 	if !ok {
 		return nil, fmt.Errorf("not a replication controller: %#v", obj)
 	}
-	if !api.ValidNamespace(ctx, &controller.ObjectMeta) {
-		return nil, errors.NewConflict("controller", controller.Namespace, fmt.Errorf("Controller.Namespace does not match the provided context"))
+	if !api.ValidNamespace(ctx, &controller.Metadata) {
+		return nil, errors.NewConflict("controller", controller.Metadata.Namespace, fmt.Errorf("Controller.Metadata.Namespace does not match the provided context"))
 	}
 
-	if len(controller.Name) == 0 {
-		controller.Name = uuid.NewUUID().String()
+	if len(controller.Metadata.Name) == 0 {
+		controller.Metadata.Name = uuid.NewUUID().String()
 	}
 	// Pod Manifest ID should be assigned by the pod API
-	controller.DesiredState.PodTemplate.DesiredState.Manifest.ID = ""
+	controller.Spec.PodTemplate.DesiredState.Manifest.ID = ""
 	if errs := validation.ValidateReplicationController(controller); len(errs) > 0 {
-		return nil, errors.NewInvalid("replicationController", controller.Name, errs)
+		return nil, errors.NewInvalid("replicationController", controller.Metadata.Name, errs)
 	}
 
-	controller.CreationTimestamp = util.Now()
+	controller.Metadata.CreationTimestamp = util.Now()
 
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := rs.registry.CreateController(ctx, controller)
 		if err != nil {
 			return nil, err
 		}
-		return rs.registry.GetController(ctx, controller.Name)
+		return rs.registry.GetController(ctx, controller.Metadata.Name)
 	}), nil
 }
 
@@ -111,7 +111,7 @@ func (rs *REST) List(ctx api.Context, label, field labels.Selector) (runtime.Obj
 	}
 	filtered := []api.ReplicationController{}
 	for _, controller := range controllers.Items {
-		if label.Matches(labels.Set(controller.Labels)) {
+		if label.Matches(labels.Set(controller.Metadata.Labels)) {
 			rs.fillCurrentState(ctx, &controller)
 			filtered = append(filtered, controller)
 		}
@@ -132,18 +132,18 @@ func (rs *REST) Update(ctx api.Context, obj runtime.Object) (<-chan runtime.Obje
 	if !ok {
 		return nil, fmt.Errorf("not a replication controller: %#v", obj)
 	}
-	if !api.ValidNamespace(ctx, &controller.ObjectMeta) {
-		return nil, errors.NewConflict("controller", controller.Namespace, fmt.Errorf("Controller.Namespace does not match the provided context"))
+	if !api.ValidNamespace(ctx, &controller.Metadata) {
+		return nil, errors.NewConflict("controller", controller.Metadata.Namespace, fmt.Errorf("Controller.Metadata.Namespace does not match the provided context"))
 	}
 	if errs := validation.ValidateReplicationController(controller); len(errs) > 0 {
-		return nil, errors.NewInvalid("replicationController", controller.Name, errs)
+		return nil, errors.NewInvalid("replicationController", controller.Metadata.Name, errs)
 	}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := rs.registry.UpdateController(ctx, controller)
 		if err != nil {
 			return nil, err
 		}
-		return rs.registry.GetController(ctx, controller.Name)
+		return rs.registry.GetController(ctx, controller.Metadata.Name)
 	}), nil
 }
 
@@ -165,7 +165,7 @@ func (rs *REST) Watch(ctx api.Context, label, field labels.Selector, resourceVer
 			// must be an error event-- pass it on
 			return e, true
 		}
-		match := label.Matches(labels.Set(repController.Labels))
+		match := label.Matches(labels.Set(repController.Metadata.Labels))
 		if match {
 			rs.fillCurrentState(ctx, repController)
 		}
@@ -175,11 +175,11 @@ func (rs *REST) Watch(ctx api.Context, label, field labels.Selector, resourceVer
 
 func (rs *REST) waitForController(ctx api.Context, ctrl *api.ReplicationController) (runtime.Object, error) {
 	for {
-		pods, err := rs.podLister.ListPods(ctx, labels.Set(ctrl.DesiredState.ReplicaSelector).AsSelector())
+		pods, err := rs.podLister.ListPods(ctx, labels.Set(ctrl.Spec.Selector).AsSelector())
 		if err != nil {
 			return ctrl, err
 		}
-		if len(pods.Items) == ctrl.DesiredState.Replicas {
+		if len(pods.Items) == ctrl.Spec.Replicas {
 			break
 		}
 		time.Sleep(rs.pollPeriod)
@@ -191,10 +191,10 @@ func (rs *REST) fillCurrentState(ctx api.Context, ctrl *api.ReplicationControlle
 	if rs.podLister == nil {
 		return nil
 	}
-	list, err := rs.podLister.ListPods(ctx, labels.Set(ctrl.DesiredState.ReplicaSelector).AsSelector())
+	list, err := rs.podLister.ListPods(ctx, labels.Set(ctrl.Spec.Selector).AsSelector())
 	if err != nil {
 		return err
 	}
-	ctrl.CurrentState.Replicas = len(list.Items)
+	ctrl.Status.Replicas = len(list.Items)
 	return nil
 }

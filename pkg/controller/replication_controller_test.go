@@ -62,7 +62,7 @@ func (f *FakePodControl) deletePod(namespace string, podName string) error {
 
 func newReplicationController(replicas int) api.ReplicationController {
 	return api.ReplicationController{
-		DesiredState: api.ReplicationControllerState{
+		Spec: api.ReplicationControllerSpec{
 			Replicas: replicas,
 			PodTemplate: api.PodTemplate{
 				DesiredState: api.PodState{
@@ -181,10 +181,10 @@ func TestCreateReplica(t *testing.T) {
 	}
 
 	controllerSpec := api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{
+		Metadata: api.ObjectMeta{
 			Name: "test",
 		},
-		DesiredState: api.ReplicationControllerState{
+		Spec: api.ReplicationControllerSpec{
 			PodTemplate: api.PodTemplate{
 				DesiredState: api.PodState{
 					Manifest: api.ContainerManifest{
@@ -208,9 +208,9 @@ func TestCreateReplica(t *testing.T) {
 
 	expectedPod := api.Pod{
 		ObjectMeta: api.ObjectMeta{
-			Labels: controllerSpec.DesiredState.PodTemplate.Labels,
+			Labels: controllerSpec.Spec.PodTemplate.Labels,
 		},
-		DesiredState: controllerSpec.DesiredState.PodTemplate.DesiredState,
+		DesiredState: controllerSpec.Spec.PodTemplate.DesiredState,
 	}
 	fakeHandler.ValidateRequest(t, makeURL("/pods?namespace=default"), "POST", nil)
 	actualPod, err := client.Codec.Decode([]byte(fakeHandler.RequestBody))
@@ -226,7 +226,7 @@ func TestCreateReplica(t *testing.T) {
 func TestSynchonize(t *testing.T) {
 	controllerSpec1 := api.ReplicationController{
 		TypeMeta: api.TypeMeta{APIVersion: testapi.Version()},
-		DesiredState: api.ReplicationControllerState{
+		Spec: api.ReplicationControllerSpec{
 			Replicas: 4,
 			PodTemplate: api.PodTemplate{
 				DesiredState: api.PodState{
@@ -247,7 +247,7 @@ func TestSynchonize(t *testing.T) {
 	}
 	controllerSpec2 := api.ReplicationController{
 		TypeMeta: api.TypeMeta{APIVersion: testapi.Version()},
-		DesiredState: api.ReplicationControllerState{
+		Spec: api.ReplicationControllerSpec{
 			Replicas: 3,
 			PodTemplate: api.PodTemplate{
 				DesiredState: api.PodState{
@@ -339,7 +339,7 @@ func TestWatchControllers(t *testing.T) {
 	go manager.watchControllers(&resourceVersion)
 
 	// Test normal case
-	testControllerSpec.Name = "foo"
+	testControllerSpec.Metadata.Name = "foo"
 
 	fakeWatch.Add(&testControllerSpec)
 

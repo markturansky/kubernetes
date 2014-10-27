@@ -338,6 +338,7 @@ func ValidatePod(pod *api.Pod) errs.ValidationErrorList {
 	if !util.IsDNSSubdomain(pod.Namespace) {
 		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", pod.Namespace))
 	}
+
 	allErrs = append(allErrs, ValidatePodState(&pod.DesiredState).Prefix("desiredState")...)
 	allErrs = append(allErrs, validateLabels(pod.Labels)...)
 	return allErrs
@@ -411,36 +412,41 @@ func ValidateService(service *api.Service) errs.ValidationErrorList {
 // ValidateReplicationController tests if required fields in the replication controller are set.
 func ValidateReplicationController(controller *api.ReplicationController) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
-	if len(controller.Name) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("name", controller.Name))
+	if len(controller.Metadata.Name) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("name", controller.Metadata.Name))
 	}
-	if !util.IsDNSSubdomain(controller.Namespace) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", controller.Namespace))
+	if !util.IsDNSSubdomain(controller.Metadata.Namespace) {
+		allErrs = append(allErrs, errs.NewFieldInvalid("namespace", controller.Metadata.Namespace))
 	}
-	allErrs = append(allErrs, ValidateReplicationControllerState(&controller.DesiredState).Prefix("desiredState")...)
-	allErrs = append(allErrs, validateLabels(controller.Labels)...)
+	if labels.Set(controller.Metadata.Labels).AsSelector().Empty() {
+		allErrs = append(allErrs, errs.NewFieldRequired("replicaSelector", controller.Metadata.Labels))
+	}
+//	allErrs = append(allErrs, ValidateReplicationControllerState(&controller.Spec).Prefix("desiredState")...)
+	allErrs = append(allErrs, validateLabels(controller.Metadata.Labels)...)
 	return allErrs
 }
 
+
 // ValidateReplicationControllerState tests if required fields in the replication controller state are set.
-func ValidateReplicationControllerState(state *api.ReplicationControllerState) errs.ValidationErrorList {
+func ValidateReplicationControllerState(spec *api.ReplicationControllerSpec) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
-	if labels.Set(state.ReplicaSelector).AsSelector().Empty() {
-		allErrs = append(allErrs, errs.NewFieldRequired("replicaSelector", state.ReplicaSelector))
+	if labels.Set(spec.Selector).AsSelector().Empty() {
+		allErrs = append(allErrs, errs.NewFieldRequired("replicaSelector", spec.Selector))
 	}
-	selector := labels.Set(state.ReplicaSelector).AsSelector()
-	labels := labels.Set(state.PodTemplate.Labels)
+	selector := labels.Set(spec.Selector).AsSelector()
+	labels := labels.Set(spec.PodTemplate.Labels)
 	if !selector.Matches(labels) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("podTemplate.labels", state.PodTemplate))
+		allErrs = append(allErrs, errs.NewFieldInvalid("podTemplate.labels", spec.PodTemplate))
 	}
 	allErrs = append(allErrs, validateLabels(labels)...)
-	if state.Replicas < 0 {
-		allErrs = append(allErrs, errs.NewFieldInvalid("replicas", state.Replicas))
+	if spec.Replicas < 0 {
+		allErrs = append(allErrs, errs.NewFieldInvalid("replicas", spec.Replicas))
 	}
-	allErrs = append(allErrs, ValidateManifest(&state.PodTemplate.DesiredState.Manifest).Prefix("podTemplate.desiredState.manifest")...)
-	allErrs = append(allErrs, ValidateReadOnlyPersistentDisks(state.PodTemplate.DesiredState.Manifest.Volumes).Prefix("podTemplate.desiredState.manifest")...)
+	allErrs = append(allErrs, ValidateManifest(&spec.PodTemplate.DesiredState.Manifest).Prefix("podTemplate.desiredState.manifest")...)
+	allErrs = append(allErrs, ValidateReadOnlyPersistentDisks(spec.PodTemplate.DesiredState.Manifest.Volumes).Prefix("podTemplate.desiredState.manifest")...)
 	return allErrs
 }
+
 func ValidateReadOnlyPersistentDisks(volumes []api.Volume) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	for _, vol := range volumes {

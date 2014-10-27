@@ -301,14 +301,14 @@ func TestListControllers(t *testing.T) {
 			Body: &api.ReplicationControllerList{
 				Items: []api.ReplicationController{
 					{
-						ObjectMeta: api.ObjectMeta{
+						Metadata: api.ObjectMeta{
 							Name: "foo",
 							Labels: map[string]string{
 								"foo":  "bar",
 								"name": "baz",
 							},
 						},
-						DesiredState: api.ReplicationControllerState{
+						Spec: api.ReplicationControllerSpec{
 							Replicas: 2,
 						},
 					},
@@ -327,14 +327,14 @@ func TestGetController(t *testing.T) {
 		Response: Response{
 			StatusCode: 200,
 			Body: &api.ReplicationController{
-				ObjectMeta: api.ObjectMeta{
+				Metadata: api.ObjectMeta{
 					Name: "foo",
 					Labels: map[string]string{
 						"foo":  "bar",
 						"name": "baz",
 					},
 				},
-				DesiredState: api.ReplicationControllerState{
+				Spec: api.ReplicationControllerSpec{
 					Replicas: 2,
 				},
 			},
@@ -346,21 +346,21 @@ func TestGetController(t *testing.T) {
 
 func TestUpdateController(t *testing.T) {
 	requestController := &api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "1"},
+		Metadata: api.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 	}
 	c := &testClient{
 		Request: testRequest{Method: "PUT", Path: "/replicationControllers/foo"},
 		Response: Response{
 			StatusCode: 200,
 			Body: &api.ReplicationController{
-				ObjectMeta: api.ObjectMeta{
+				Metadata: api.ObjectMeta{
 					Name: "foo",
 					Labels: map[string]string{
 						"foo":  "bar",
 						"name": "baz",
 					},
 				},
-				DesiredState: api.ReplicationControllerState{
+				Spec: api.ReplicationControllerSpec{
 					Replicas: 2,
 				},
 			},
@@ -381,21 +381,21 @@ func TestDeleteController(t *testing.T) {
 
 func TestCreateController(t *testing.T) {
 	requestController := &api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{Name: "foo"},
+		Metadata: api.ObjectMeta{Name: "foo"},
 	}
 	c := &testClient{
 		Request: testRequest{Method: "POST", Path: "/replicationControllers", Body: requestController},
 		Response: Response{
 			StatusCode: 200,
 			Body: &api.ReplicationController{
-				ObjectMeta: api.ObjectMeta{
+				Metadata: api.ObjectMeta{
 					Name: "foo",
 					Labels: map[string]string{
 						"foo":  "bar",
 						"name": "baz",
 					},
 				},
-				DesiredState: api.ReplicationControllerState{
+				Spec: api.ReplicationControllerSpec{
 					Replicas: 2,
 				},
 			},

@@ -104,8 +104,8 @@ func TestParseService(t *testing.T) {
 func TestParseController(t *testing.T) {
 	DoParseTest(t, "replicationControllers", &api.ReplicationController{
 		TypeMeta:   api.TypeMeta{APIVersion: "v1beta1", Kind: "ReplicationController"},
-		ObjectMeta: api.ObjectMeta{Name: "my controller"},
-		DesiredState: api.ReplicationControllerState{
+		Metadata: api.ObjectMeta{Name: "my controller"},
+		Spec: api.ReplicationControllerSpec{
 			Replicas: 9001,
 			PodTemplate: api.PodTemplate{
 				DesiredState: api.PodState{

@@ -387,22 +387,22 @@ func (r *Registry) GetController(ctx api.Context, controllerID string) (*api.Rep
 
 // CreateController creates a new ReplicationController.
 func (r *Registry) CreateController(ctx api.Context, controller *api.ReplicationController) error {
-	key, err := makeControllerKey(ctx, controller.Name)
+	key, err := makeControllerKey(ctx, controller.Metadata.Name)
 	if err != nil {
 		return err
 	}
 	err = r.CreateObj(key, controller, 0)
-	return etcderr.InterpretCreateError(err, "replicationController", controller.Name)
+	return etcderr.InterpretCreateError(err, "replicationController", controller.Metadata.Name)
 }
 
 // UpdateController replaces an existing ReplicationController.
 func (r *Registry) UpdateController(ctx api.Context, controller *api.ReplicationController) error {
-	key, err := makeControllerKey(ctx, controller.Name)
+	key, err := makeControllerKey(ctx, controller.Metadata.Name)
 	if err != nil {
 		return err
 	}
 	err = r.SetObj(key, controller)
-	return etcderr.InterpretUpdateError(err, "replicationController", controller.Name)
+	return etcderr.InterpretUpdateError(err, "replicationController", controller.Metadata.Name)
 }
 
 // DeleteController deletes a ReplicationController specified by its ID.

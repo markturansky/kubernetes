@@ -85,11 +85,11 @@ func describeReplicationController(w io.Writer, c client.Interface, id string) (
 	}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
-		fmt.Fprintf(out, "Name:\t%s\n", controller.Name)
-		fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(controller.DesiredState.PodTemplate.DesiredState.Manifest))
-		fmt.Fprintf(out, "Selector:\t%s\n", formatLabels(controller.DesiredState.ReplicaSelector))
-		fmt.Fprintf(out, "Labels:\t%s\n", formatLabels(controller.Labels))
-		fmt.Fprintf(out, "Replicas:\t%d current / %d desired\n", controller.CurrentState.Replicas, controller.DesiredState.Replicas)
+		fmt.Fprintf(out, "Name:\t%s\n", controller.Metadata.Name)
+		fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(controller.Spec.PodTemplate.DesiredState.Manifest))
+		fmt.Fprintf(out, "Selector:\t%s\n", formatLabels(controller.Spec.Selector))
+		fmt.Fprintf(out, "Labels:\t%s\n", formatLabels(controller.Metadata.Labels))
+		fmt.Fprintf(out, "Replicas:\t%d current / %d desired\n", controller.Status.Replicas, controller.Spec.Replicas)
 		fmt.Fprintf(out, "Pods Status:\t%d Running / %d Waiting / %d Terminated\n", running, waiting, terminated)
 		return nil
 	})
@@ -152,7 +152,7 @@ func getReplicationControllersForLabels(c client.Interface, labelsToMatch labels
 	// Find the ones that match labelsToMatch.
 	var matchingRCs []api.ReplicationController
 	for _, controller := range rcs.Items {
-		selector := labels.SelectorFromSet(controller.DesiredState.ReplicaSelector)
+		selector := labels.SelectorFromSet(controller.Spec.Selector)
 		if selector.Matches(labelsToMatch) {
 			matchingRCs = append(matchingRCs, controller)
 		}
@@ -161,7 +161,7 @@ func getReplicationControllersForLabels(c client.Interface, labelsToMatch labels
 	// Format the matching RC's into strings.
 	var rcStrings []string
 	for _, controller := range matchingRCs {
-		rcStrings = append(rcStrings, fmt.Sprintf("%s (%d/%d replicas created)", controller.Name, controller.CurrentState.Replicas, controller.DesiredState.Replicas))
+		rcStrings = append(rcStrings, fmt.Sprintf("%s (%d/%d replicas created)", controller.Metadata.Name, controller.Status.Replicas, controller.Spec.Replicas))
 	}
 
 	list := strings.Join(rcStrings, ", ")
@@ -172,7 +172,7 @@ func getReplicationControllersForLabels(c client.Interface, labelsToMatch labels
 }
 
 func getPodStatusForReplicationController(kubeClient client.Interface, controller *api.ReplicationController) (running, waiting, terminated int, err error) {
-	rcPods, err := kubeClient.Pods(controller.Namespace).List(labels.SelectorFromSet(controller.DesiredState.ReplicaSelector))
+	rcPods, err := kubeClient.Pods(controller.Metadata.Namespace).List(labels.SelectorFromSet(controller.Spec.Selector))
 	if err != nil {
 		return
 	}

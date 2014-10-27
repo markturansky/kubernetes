@@ -35,7 +35,7 @@ func validateObject(obj runtime.Object) (errors []error) {
 	ctx := api.NewDefaultContext()
 	switch t := obj.(type) {
 	case *api.ReplicationController:
-		errors = validation.ValidateManifest(&t.DesiredState.PodTemplate.DesiredState.Manifest)
+		errors = validation.ValidateManifest(&t.Spec.PodTemplate.DesiredState.Manifest)
 	case *api.ReplicationControllerList:
 		for i := range t.Items {
 			errors = append(errors, validateObject(&t.Items[i])...)

@@ -439,13 +439,6 @@ type Pod struct {
 	NodeSelector map[string]string `json:"nodeSelector,omitempty" yaml:"nodeSelector,omitempty"`
 }
 
-// ReplicationControllerState is the state of a replication controller, either input (create, update) or as output (list, get).
-type ReplicationControllerState struct {
-	Replicas        int               `json:"replicas" yaml:"replicas"`
-	ReplicaSelector map[string]string `json:"replicaSelector,omitempty" yaml:"replicaSelector,omitempty"`
-	PodTemplate     PodTemplate       `json:"podTemplate,omitempty" yaml:"podTemplate,omitempty"`
-}
-
 // ReplicationControllerList is a collection of replication controllers.
 type ReplicationControllerList struct {
 	TypeMeta `json:",inline" yaml:",inline"`
@@ -454,13 +447,40 @@ type ReplicationControllerList struct {
 	Items []ReplicationController `json:"items,omitempty" yaml:"items,omitempty"`
 }
 
+// ReplicationControllerSpec is the specification of a replication controller.
+type ReplicationControllerSpec struct {
+	// Replicas is the number of desired replicas.
+	Replicas int `json:"replicas" yaml:"replicas"`
+
+	// Selector is a label query over pods that should match the Replicas count.
+	Selector map[string]string `json:"selector,omitempty" yaml:"selector,omitempty"`
+
+	// Template is a reference to an object that describes the pod that will be created if
+	// insufficient replicas are detected.
+	Template ObjectReference `json:"template,omitempty" yaml:"template,omitempty"`
+
+	// PodTemplate definition in spec.  Big refactor towards Template above.
+	PodTemplate PodTemplate `json:"podTemplate,omitempty" yaml:"podTemplate,omitempty"`
+}
+
+// ReplicationControllerStatus represents the current status of a replication
+// controller.
+type ReplicationControllerStatus struct {
+	// Replicas is the number of actual replicas.
+	Replicas int `json:"replicas" yaml:"replicas"`
+}
+
 // ReplicationController represents the configuration of a replication controller.
 type ReplicationController struct {
 	TypeMeta   `json:",inline" yaml:",inline"`
-	ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Metadata ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
-	DesiredState ReplicationControllerState `json:"desiredState,omitempty" yaml:"desiredState,omitempty"`
-	CurrentState ReplicationControllerState `json:"currentState,omitempty" yaml:"currentState,omitempty"`
+	// Spec defines the desired behavior of this replication controller.
+	Spec ReplicationControllerSpec `json:"spec,omitempty" yaml:"spec,omitempty"`
+
+	// Status is the current status of this replication controller. This data may be
+	// out of date by some window of time.
+	Status ReplicationControllerStatus `json:"status,omitempty" yaml:"status,omitempty"`
 }
 
 // PodTemplate holds the information used for creating pods.

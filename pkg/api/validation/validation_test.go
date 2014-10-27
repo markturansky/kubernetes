@@ -794,16 +794,16 @@ func TestValidateReplicationController(t *testing.T) {
 	}
 	successCases := []api.ReplicationController{
 		{
-			ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
-			DesiredState: api.ReplicationControllerState{
-				ReplicaSelector: validSelector,
+			Metadata: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+			Spec: api.ReplicationControllerSpec {
+				Selector: validSelector,
 				PodTemplate:     validPodTemplate,
 			},
 		},
 		{
-			ObjectMeta: api.ObjectMeta{Name: "abc-123", Namespace: api.NamespaceDefault},
-			DesiredState: api.ReplicationControllerState{
-				ReplicaSelector: validSelector,
+			Metadata: api.ObjectMeta{Name: "abc-123", Namespace: api.NamespaceDefault},
+			Spec: api.ReplicationControllerSpec{
+				Selector: validSelector,
 				PodTemplate:     validPodTemplate,
 			},
 		},
@@ -816,74 +816,74 @@ func TestValidateReplicationController(t *testing.T) {
 
 	errorCases := map[string]api.ReplicationController{
 		"zero-length ID": {
-			ObjectMeta: api.ObjectMeta{Name: "", Namespace: api.NamespaceDefault},
-			DesiredState: api.ReplicationControllerState{
-				ReplicaSelector: validSelector,
+			Metadata: api.ObjectMeta{Name: "", Namespace: api.NamespaceDefault},
+			Spec: api.ReplicationControllerSpec{
+				Selector: validSelector,
 				PodTemplate:     validPodTemplate,
 			},
 		},
 		"missing-namespace": {
-			ObjectMeta: api.ObjectMeta{Name: "abc-123"},
-			DesiredState: api.ReplicationControllerState{
-				ReplicaSelector: validSelector,
+			Metadata: api.ObjectMeta{Name: "abc-123"},
+			Spec: api.ReplicationControllerSpec{
+				Selector: validSelector,
 				PodTemplate:     validPodTemplate,
 			},
 		},
 		"empty selector": {
-			ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
-			DesiredState: api.ReplicationControllerState{
+			Metadata: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+			Spec: api.ReplicationControllerSpec{
 				PodTemplate: validPodTemplate,
 			},
 		},
 		"selector_doesnt_match": {
-			ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
-			DesiredState: api.ReplicationControllerState{
-				ReplicaSelector: map[string]string{"foo": "bar"},
+			Metadata: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+			Spec: api.ReplicationControllerSpec{
+				Selector: map[string]string{"foo": "bar"},
 				PodTemplate:     validPodTemplate,
 			},
 		},
 		"invalid manifest": {
-			ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
-			DesiredState: api.ReplicationControllerState{
-				ReplicaSelector: validSelector,
+			Metadata: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+			Spec: api.ReplicationControllerSpec{
+				Selector: validSelector,
 			},
 		},
 		"read-write presistent disk": {
-			ObjectMeta: api.ObjectMeta{Name: "abc"},
-			DesiredState: api.ReplicationControllerState{
-				ReplicaSelector: validSelector,
+			Metadata: api.ObjectMeta{Name: "abc"},
+			Spec: api.ReplicationControllerSpec{
+				Selector: validSelector,
 				PodTemplate:     invalidVolumePodTemplate,
 			},
 		},
 		"negative_replicas": {
-			ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
-			DesiredState: api.ReplicationControllerState{
+			Metadata: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+			Spec: api.ReplicationControllerSpec{
 				Replicas:        -1,
-				ReplicaSelector: validSelector,
+				Selector: validSelector,
 			},
 		},
 		"invalid_label": {
-			ObjectMeta: api.ObjectMeta{
+			Metadata: api.ObjectMeta{
 				Name:      "abc-123",
 				Namespace: api.NamespaceDefault,
 				Labels: map[string]string{
 					"NoUppercaseOrSpecialCharsLike=Equals": "bar",
 				},
 			},
-			DesiredState: api.ReplicationControllerState{
-				ReplicaSelector: validSelector,
+			Spec: api.ReplicationControllerSpec{
+				Selector: validSelector,
 				PodTemplate:     validPodTemplate,
 			},
 		},
 		"invalid_label 2": {
-			ObjectMeta: api.ObjectMeta{
+			Metadata: api.ObjectMeta{
 				Name:      "abc-123",
 				Namespace: api.NamespaceDefault,
 				Labels: map[string]string{
 					"NoUppercaseOrSpecialCharsLike=Equals": "bar",
 				},
 			},
-			DesiredState: api.ReplicationControllerState{
+			Spec: api.ReplicationControllerSpec{
 				PodTemplate: invalidPodTemplate,
 			},
 		},

@@ -74,12 +74,12 @@ func TestListControllerList(t *testing.T) {
 		Controllers: &api.ReplicationControllerList{
 			Items: []api.ReplicationController{
 				{
-					ObjectMeta: api.ObjectMeta{
+					Metadata: api.ObjectMeta{
 						Name: "foo",
 					},
 				},
 				{
-					ObjectMeta: api.ObjectMeta{
+					Metadata: api.ObjectMeta{
 						Name: "bar",
 					},
 				},
@@ -99,10 +99,10 @@ func TestListControllerList(t *testing.T) {
 	if len(controllers.Items) != 2 {
 		t.Errorf("Unexpected controller list: %#v", controllers)
 	}
-	if controllers.Items[0].Name != "foo" {
+	if controllers.Items[0].Metadata.Name != "foo" {
 		t.Errorf("Unexpected controller: %#v", controllers.Items[0])
 	}
-	if controllers.Items[1].Name != "bar" {
+	if controllers.Items[1].Metadata.Name != "bar" {
 		t.Errorf("Unexpected controller: %#v", controllers.Items[1])
 	}
 }
@@ -113,7 +113,7 @@ func TestControllerDecode(t *testing.T) {
 		registry: &mockRegistry,
 	}
 	controller := &api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{
+		Metadata: api.ObjectMeta{
 			Name: "foo",
 		},
 	}
@@ -134,15 +134,15 @@ func TestControllerDecode(t *testing.T) {
 
 func TestControllerParsing(t *testing.T) {
 	expectedController := api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{
+		Metadata: api.ObjectMeta{
 			Name: "nginxController",
 			Labels: map[string]string{
 				"name": "nginx",
 			},
 		},
-		DesiredState: api.ReplicationControllerState{
+		Spec: api.ReplicationControllerSpec{
 			Replicas: 2,
-			ReplicaSelector: map[string]string{
+			Selector: map[string]string{
 				"name": "nginx",
 			},
 			PodTemplate: api.PodTemplate{
@@ -239,10 +239,10 @@ func TestCreateController(t *testing.T) {
 		pollPeriod: time.Millisecond * 1,
 	}
 	controller := &api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{Name: "test"},
-		DesiredState: api.ReplicationControllerState{
+		Metadata: api.ObjectMeta{Name: "test"},
+		Spec: api.ReplicationControllerSpec{
 			Replicas:        2,
-			ReplicaSelector: map[string]string{"a": "b"},
+			Selector: map[string]string{"a": "b"},
 			PodTemplate:     validPodTemplate,
 		},
 	}
@@ -272,14 +272,14 @@ func TestControllerStorageValidatesCreate(t *testing.T) {
 	}
 	failureCases := map[string]api.ReplicationController{
 		"empty ID": {
-			ObjectMeta: api.ObjectMeta{Name: ""},
-			DesiredState: api.ReplicationControllerState{
-				ReplicaSelector: map[string]string{"bar": "baz"},
+			Metadata: api.ObjectMeta{Name: ""},
+			Spec: api.ReplicationControllerSpec{
+				Selector: map[string]string{"bar": "baz"},
 			},
 		},
 		"empty selector": {
-			ObjectMeta:   api.ObjectMeta{Name: "abc"},
-			DesiredState: api.ReplicationControllerState{},
+			Metadata:   api.ObjectMeta{Name: "abc"},
+			Spec: api.ReplicationControllerSpec{},
 		},
 	}
 	ctx := api.NewDefaultContext()
@@ -303,14 +303,14 @@ func TestControllerStorageValidatesUpdate(t *testing.T) {
 	}
 	failureCases := map[string]api.ReplicationController{
 		"empty ID": {
-			ObjectMeta: api.ObjectMeta{Name: ""},
-			DesiredState: api.ReplicationControllerState{
-				ReplicaSelector: map[string]string{"bar": "baz"},
+			Metadata: api.ObjectMeta{Name: ""},
+			Spec: api.ReplicationControllerSpec{
+				Selector: map[string]string{"bar": "baz"},
 			},
 		},
 		"empty selector": {
-			ObjectMeta:   api.ObjectMeta{Name: "abc"},
-			DesiredState: api.ReplicationControllerState{},
+			Metadata:   api.ObjectMeta{Name: "abc"},
+			Spec: api.ReplicationControllerSpec{},
 		},
 	}
 	ctx := api.NewDefaultContext()
@@ -351,26 +351,26 @@ func TestFillCurrentState(t *testing.T) {
 		podLister: &fakeLister,
 	}
 	controller := api.ReplicationController{
-		DesiredState: api.ReplicationControllerState{
-			ReplicaSelector: map[string]string{
+		Spec: api.ReplicationControllerSpec{
+			Selector: map[string]string{
 				"foo": "bar",
 			},
 		},
 	}
 	ctx := api.NewContext()
 	storage.fillCurrentState(ctx, &controller)
-	if controller.CurrentState.Replicas != 2 {
-		t.Errorf("expected 2, got: %d", controller.CurrentState.Replicas)
+	if controller.Status.Replicas != 2 {
+		t.Errorf("expected 2, got: %d", controller.Status.Replicas)
 	}
-	if !reflect.DeepEqual(fakeLister.s, labels.Set(controller.DesiredState.ReplicaSelector).AsSelector()) {
-		t.Errorf("unexpected output: %#v %#v", labels.Set(controller.DesiredState.ReplicaSelector).AsSelector(), fakeLister.s)
+	if !reflect.DeepEqual(fakeLister.s, labels.Set(controller.Spec.Selector).AsSelector()) {
+		t.Errorf("unexpected output: %#v %#v", labels.Set(controller.Spec.Selector).AsSelector(), fakeLister.s)
 	}
 }
 
 func TestCreateControllerWithConflictingNamespace(t *testing.T) {
 	storage := REST{}
 	controller := &api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{Name: "test", Namespace: "not-default"},
+		Metadata: api.ObjectMeta{Name: "test", Namespace: "not-default"},
 	}
 
 	ctx := api.NewDefaultContext()
@@ -388,7 +388,7 @@ func TestCreateControllerWithConflictingNamespace(t *testing.T) {
 func TestUpdateControllerWithConflictingNamespace(t *testing.T) {
 	storage := REST{}
 	controller := &api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{Name: "test", Namespace: "not-default"},
+		Metadata: api.ObjectMeta{Name: "test", Namespace: "not-default"},
 	}
 
 	ctx := api.NewDefaultContext()
