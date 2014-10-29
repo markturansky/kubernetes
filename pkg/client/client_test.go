@@ -88,6 +88,9 @@ func (c *testClient) Setup() *testClient {
 func (c *testClient) Validate(t *testing.T, received runtime.Object, err error) {
 	c.ValidateCommon(t, err)
 
+	fmt.Printf("%v\n", received)
+
+
 	if c.Response.Body != nil && !reflect.DeepEqual(c.Response.Body, received) {
 		t.Errorf("bad response for request %#v: expected %s, got %s", c.Request, c.Response.Body, received)
 	}
@@ -348,6 +351,7 @@ func TestGetController(t *testing.T) {
 
 func TestUpdateController(t *testing.T) {
 	requestController := &api.ReplicationController{
+		TypeMeta: api.TypeMeta { APIVersion: "v1beta3",},
 		Metadata: api.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 	}
 	c := &testClient{
@@ -355,11 +359,9 @@ func TestUpdateController(t *testing.T) {
 		Response: Response{
 			StatusCode: 200,
 			Body: &api.ReplicationController{
-//
-//				TypeMeta: api.TypeMeta {
-//					APIVersion: "v1beta3",
-//				},
-
+				TypeMeta: api.TypeMeta {
+					APIVersion: "v1beta3",
+				},
 				Metadata: api.ObjectMeta{
 					Name: "foo",
 					ResourceVersion: "1",
@@ -376,9 +378,6 @@ func TestUpdateController(t *testing.T) {
 	}
 	receivedController, err := c.Setup().ReplicationControllers(api.NamespaceDefault).Update(requestController)
 
-	fmt.Printf("%v\n", receivedController)
-	fmt.Printf("%v\n", err)
-
 	c.Validate(t, receivedController, err)
 }
 
@@ -394,12 +393,14 @@ func TestDeleteController(t *testing.T) {
 func TestCreateController(t *testing.T) {
 	requestController := &api.ReplicationController{
 		Metadata: api.ObjectMeta{Name: "foo"},
+		TypeMeta: api.TypeMeta { APIVersion: "v1beta3",},
 	}
 	c := &testClient{
 		Request: testRequest{Method: "POST", Path: "/replicationControllers", Body: requestController},
 		Response: Response{
 			StatusCode: 200,
 			Body: &api.ReplicationController{
+				TypeMeta: api.TypeMeta { APIVersion: "v1beta3",},
 				Metadata: api.ObjectMeta{
 					Name: "foo",
 					Labels: map[string]string{
@@ -419,10 +420,14 @@ func TestCreateController(t *testing.T) {
 
 func body(obj runtime.Object, raw *string) *string {
 	if obj != nil {
+		fmt.Printf("Before ------  %v\n", obj)
 		bs, _ := latest.Codec.Encode(obj)
 		body := string(bs)
+		fmt.Printf("After ------  %v\n", body)
+		fmt.Println("")
 		return &body
 	}
+
 	return raw
 }
 

@@ -18,6 +18,7 @@ package client
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -74,11 +75,17 @@ func (c *replicationControllers) Create(controller *api.ReplicationController) (
 // Update updates an existing replication controller.
 func (c *replicationControllers) Update(controller *api.ReplicationController) (result *api.ReplicationController, err error) {
 	result = &api.ReplicationController{}
+
 	if len(controller.TypeMeta.APIVersion) == 0 {
 		err = fmt.Errorf("invalid update object, missing resource version: %v", controller)
 		return
 	}
+
+	fmt.Printf("coming in? %v\n", c.r)
+	fmt.Println(reflect.TypeOf(c.r))
 	err = c.r.Put().Namespace(c.ns).Path("replicationControllers").Path(controller.Metadata.Name).Body(controller).Do().Into(result)
+	fmt.Printf("shit broke out? %v\n\n", result)
+
 	return
 }
 

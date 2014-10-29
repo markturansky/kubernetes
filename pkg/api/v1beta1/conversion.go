@@ -210,12 +210,10 @@ func init() {
 		},
 
 		func(in *newer.ReplicationController, out *ReplicationController, s conversion.Scope) error {
-
-			fmt.Println("in new, out older")
-			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+			if err := s.Convert(&in.Metadata, &out.TypeMeta, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.Metadata, &out.TypeMeta, 0); err != nil {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
 			if err := s.Convert(&in.Metadata.Annotations, &out.Annotations, 0); err != nil {
@@ -239,8 +237,6 @@ func init() {
 			return nil
 		},
 		func(in *ReplicationController, out *newer.ReplicationController, s conversion.Scope) error {
-
-			fmt.Println("in older, out newer")
 			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
