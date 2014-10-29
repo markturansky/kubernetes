@@ -24,6 +24,7 @@ import (
 	"path"
 	"reflect"
 	"testing"
+	"fmt"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
@@ -110,6 +111,7 @@ func (c *testClient) ValidateCommon(t *testing.T, err error) {
 		return
 	}
 	if err != nil {
+		fmt.Printf("%v", err)
 		t.Errorf("no error expected for %#v, got: %v", c.Request, err)
 	}
 
@@ -353,8 +355,14 @@ func TestUpdateController(t *testing.T) {
 		Response: Response{
 			StatusCode: 200,
 			Body: &api.ReplicationController{
+//
+//				TypeMeta: api.TypeMeta {
+//					APIVersion: "v1beta3",
+//				},
+
 				Metadata: api.ObjectMeta{
 					Name: "foo",
+					ResourceVersion: "1",
 					Labels: map[string]string{
 						"foo":  "bar",
 						"name": "baz",
@@ -367,6 +375,10 @@ func TestUpdateController(t *testing.T) {
 		},
 	}
 	receivedController, err := c.Setup().ReplicationControllers(api.NamespaceDefault).Update(requestController)
+
+	fmt.Printf("%v\n", receivedController)
+	fmt.Printf("%v\n", err)
+
 	c.Validate(t, receivedController, err)
 }
 

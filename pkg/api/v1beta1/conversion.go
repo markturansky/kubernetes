@@ -21,6 +21,7 @@ import (
 
 	newer "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
+	"fmt"
 )
 
 func init() {
@@ -43,6 +44,7 @@ func init() {
 			if len(in.ResourceVersion) > 0 {
 				v, err := strconv.ParseUint(in.ResourceVersion, 10, 64)
 				if err != nil {
+					fmt.Println("soo!")
 					return err
 				}
 				out.ResourceVersion = v
@@ -208,25 +210,37 @@ func init() {
 		},
 
 		func(in *newer.ReplicationController, out *ReplicationController, s conversion.Scope) error {
+
+			fmt.Println("in new, out older")
 			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
 			if err := s.Convert(&in.Metadata, &out.TypeMeta, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.Metadata.Annotations, &out.Annotations, 0); err != nil {
+				return err
+			}
 			if err := s.Convert(&in.Metadata.Labels, &out.Labels, 0); err != nil {
 				return err
 			}
-
-			if err := s.Convert(&in.Spec.PodTemplate.DesiredState, &out.DesiredState, 0); err != nil {
+			if err := s.Convert(&in.Spec.Replicas, &out.DesiredState.Replicas, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.Status, &out.CurrentState, 0); err != nil {
+			if err := s.Convert(&in.Spec.Selector, &out.DesiredState.ReplicaSelector, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Spec.PodTemplate, &out.DesiredState.PodTemplate, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status.Replicas, &out.CurrentState.Replicas, 0); err != nil {
 				return err
 			}
 			return nil
 		},
 		func(in *ReplicationController, out *newer.ReplicationController, s conversion.Scope) error {
+
+			fmt.Println("in older, out newer")
 			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
@@ -236,11 +250,16 @@ func init() {
 			if err := s.Convert(&in.Labels, &out.Metadata.Labels, 0); err != nil {
 				return err
 			}
-
-			if err := s.Convert(&in.DesiredState, &out.Spec.PodTemplate.DesiredState, 0); err != nil {
+			if err := s.Convert(&in.DesiredState.Replicas, &out.Spec.Replicas, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.CurrentState, &out.Status, 0); err != nil {
+			if err := s.Convert(&in.DesiredState.ReplicaSelector, &out.Spec.Selector, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.DesiredState.PodTemplate, &out.Spec.PodTemplate, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.CurrentState.Replicas, &out.Status.Replicas, 0); err != nil {
 				return err
 			}
 			return nil

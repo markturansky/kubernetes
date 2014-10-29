@@ -56,6 +56,13 @@ func Accessor(obj interface{}) (Interface, error) {
 	}
 
 	typeMeta := v.FieldByName("TypeMeta")
+
+	// ContainerManifest does not contain TypeMeta, ObjectMeta, or ListMeta
+	name := reflect.TypeOf(obj).Elem().Name()
+	if name == "ContainerManifest" {
+		return nil, nil
+	}
+
 	if !typeMeta.IsValid() {
 		return nil, fmt.Errorf("struct %v lacks embedded TypeMeta type", t)
 	}
@@ -63,6 +70,11 @@ func Accessor(obj interface{}) (Interface, error) {
 	a := &genericAccessor{}
 	if err := extractFromTypeMeta(typeMeta, a); err != nil {
 		return nil, fmt.Errorf("unable to find type fields on %#v", typeMeta)
+	}
+
+	// ReplicationController does not contain ObjectMeta or ListMeta
+	if name == "ReplicationController" {
+		return a, nil
 	}
 
 	objectMeta := v.FieldByName("ObjectMeta")

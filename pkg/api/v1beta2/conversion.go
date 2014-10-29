@@ -139,20 +139,29 @@ func init() {
 		},
 
 		func(in *newer.ReplicationController, out *ReplicationController, s conversion.Scope) error {
+
 			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
 			if err := s.Convert(&in.Metadata, &out.TypeMeta, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.Metadata.Annotations, &out.Annotations, 0); err != nil {
+				return err
+			}
 			if err := s.Convert(&in.Metadata.Labels, &out.Labels, 0); err != nil {
 				return err
 			}
-
-			if err := s.Convert(&in.Spec, &out.DesiredState, 0); err != nil {
+			if err := s.Convert(&in.Spec.Replicas, &out.DesiredState.Replicas, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.Status, &out.CurrentState, 0); err != nil {
+			if err := s.Convert(&in.Spec.Selector, &out.DesiredState.ReplicaSelector, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Spec.PodTemplate, &out.DesiredState.PodTemplate, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status.Replicas, &out.CurrentState.Replicas, 0); err != nil {
 				return err
 			}
 			return nil
@@ -167,11 +176,16 @@ func init() {
 			if err := s.Convert(&in.Labels, &out.Metadata.Labels, 0); err != nil {
 				return err
 			}
-
-			if err := s.Convert(&in.DesiredState, &out.Spec, 0); err != nil {
+			if err := s.Convert(&in.DesiredState.Replicas, &out.Spec.Replicas, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.CurrentState, &out.Status, 0); err != nil {
+			if err := s.Convert(&in.DesiredState.ReplicaSelector, &out.Spec.Selector, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.DesiredState.PodTemplate, &out.Spec.PodTemplate, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.CurrentState.Replicas, &out.Status.Replicas, 0); err != nil {
 				return err
 			}
 			return nil
