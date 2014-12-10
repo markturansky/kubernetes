@@ -43,7 +43,32 @@ NFS disk mapping to internal types:
     faster:     'nfsShare' an NFS share on the network
     fast:       'nfsShare' -- there is no 3rd option for NFS
     
-    
+## DiskController
+
+Add a new daemon to master that watches for changes to PersistentDisk in etcd.
+
+New disk requests are posted to the API server and are stored in etcd with "pending" status.  The DiskController sees the
+change and creates the disk using the cloud provider under which Kubernetes is running (e.g, if in AWS, EBS Volumes are created, etc).
+Each provider knows how to make disks for its infrastructure.
+  
+After creation, the disk goes from "pending" to "created" state.
+
+## Formatting Options
+
+An attached disk may require formatting before being mounted as a filesystem on the host.
+  
+`GCEPersistentDisk` and `AWSPersistentDisk`, for example, are created as unformatted block storage.
+
+`NFSPersistentDisk`, on the other hand, would come from a pool of created, formatted, and exported shares to mount.
+ 
+`NodePersistentDisk` would either require creating a partion and formatting it with the filesystem of choice or only allow the filesystem that is currently on the host.
+ 
+> XFS is a filesystem that supports project quotas with regards to size and disk usage.  Without a quota in place, any pod can fill an EmptyDir or NodePersistentDisk.
+
+Formatting must happen on the host.  Kubelet attaches a disk and mounts it.  If the disk is not formatted, Kubelet could perform this task in between attaching and mounting.  
+
+DiskController does not seem like the actor to format disks, unless the disk is attached to an arbitrary host for formatting and then detached before a pod is placed on the host
+by the Scheduler.   
 
 
 ## Security and Disk Ownership
@@ -59,20 +84,10 @@ that don't belong to them.  Security is implemented via an access control list w
         2. Disks have identity. Disks outlive pods. Their IDs must be persistent for future re-mounting.
         3. Disk identity is paired with username for security.
         4. API required to delete old disks as a separate action from deleting pods (not all pod deletes should delete the disk)
-* Add DiskAccess object
-    * Created at runtime to store a specific disk with username.
 * Separate Spec and Status for disks
     * DiskSpec contains one of the specific disk types (GCE, AWS, NFS, NodeLocal)
     * Status keeps mount history for X days, allows pods to preferentially schedule onto previously used hosts
 
-
-
-### Successful Disk Creation 
-![alt text](persistent-disk-sequence.png "Successful API interaction")
-
-### Failed Disk Access
-
-![alt text](persistent-disk-failed-sequence.png "Failed attempt to access volume")
 
 ```go
 
@@ -125,7 +140,7 @@ const (
 type DiskPerformanceType string
 
 const (
-    Fast            DiskPerformanceType = "fase"
+    Fast            DiskPerformanceType  = "fast"
     Faster          DiskPerformanceType  = "faster"
     Fastest         DiskPerformanceType  = "fastest"
 )
@@ -135,11 +150,10 @@ type VolumeSource struct {
 	EmptyDir *EmptyDir 
 	
 	// changed from specific GCEPersistentDisk.
-	// selectors that can find a PersistentDisk to attach and mount
+	// selectors that can find a PersistentDisk to attach and mount.
+	// could substitute a named disk for selectors.
 	Selector []map[string]
 	
-	
-	// Does GitRepo fit the "disk" definition?  It would not match "intent" and instead requires specific repo/version attributes
 	GitRepo *GitRepo `json:"gitRepo"`
 	
     // Optional: Defaults to false (read/write). 
@@ -151,6 +165,8 @@ type VolumeSource struct {
 ```
 
 
+
+> ## everything below will be updated once the concepts above are finalized.  Tech analysis and design to follow requirements for disks.
 
 ## Phased Approach
 
