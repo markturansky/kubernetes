@@ -3,27 +3,46 @@
 ## Abstract
 
 This document defines persistent, cluster-scoped storage for applications that require long lived data.  Developers will request storage
- as an intention ("I'd like 3gb of storage, please") and Kubernetes will use the configured cloud provider implementation to create, manage, and secure
- that storage.  Names for storage will vary by cloud provider , but each shall be known internally to Kubernetes as a disk.  A new entity `PersistentDisk` is introduced
- to provide longevity to data that outlasts pods.
+as an intention ("I'd like 3gb of storage, please") and Kubernetes will use the configured cloud provider implementation to create, manage, and secure
+that storage.  Names for storage will vary by cloud provider, but each shall be known internally to Kubernetes as a disk.
+A new entity `PersistentDisk` is introduced to provide longevity to data that outlasts pods.
    
-PersistentDisks with mounting history provides a means for durable or node-specific data [[see Eric Tune's discussion of this topic]](https://github.com/GoogleCloudPlatform/kubernetes/pull/1515).
+PersistentDisks with mounting history provides a means for durable or node-specific data as a `NodePersistentDisk` [(see Eric Tune's discussion of this topic - #1515)](https://github.com/GoogleCloudPlatform/kubernetes/pull/1515).
 
 Kubernetes makes no guarantees at runtime that these volumes exist or are available. High availability is left to the storage provider.
  
-Disks are secured by storing the username of the authorized API user who created the disk.  Any pod (or other domain object) requesting
-access to the disk must occur as the same user who created the disk.  Legacy disks are supported by administrative action. An admin can
-create the necessary objects in etcd with a named disk and username.
+Disks are secured by restricting disks to the same namespace as the pods that request them.  [ACLs](../authorization.md) can restrict users to specific namespaces to prevent inadvertent access to a disk. Legacy disks are supported by administrative action.
+
  
+## Goals
+
+* Divorce pod authors from ops
+	* Provide a means for pod authors to request disks and storage without requiring the operations team running Kubernetes.
+* Implement dynamic storage for cloud providers (using GCE/AWS APIs to create disks/volumes)
+* Implement dynamic storage for non-cloud providers (pools of NFS shares and local node storage)
+* Provide working examples for each type of storage and cloud provider.
+
+## Constraints and Assumptions
+
+* NFS shares will not be created dynamically
+    * The system administrator will create, format, and export NFS shares into a pool.
+    * Scripts will be provided to make this task easier for admins.
+    * Responsibility for keeping the pool full is left to the administrator.
+* NodePersistentDisk can crash a host
+    * Without quotas in place, any pod can fill the filesystem via an EmptyDir, HostDir, or NodePersistentDisk.
+    * A filesystem like XFS provides project quotas.
+ * All disks are considered "new" in Kubernetes
+ 	* Migrating legacy data is not in scope
+ 	* Existing named disks are supported by administrative action (adding disk objects in etcd)
+
 
 ## Size and Performance -- Requesting a disk 
 
-A storage request is made using the API.  Only the intent is expressed (size and performance).  Kubernetes handles creating, managing, attaching/mounting, and deleting the disk.
+A storage request is made using the API where only intent is expressed (size and performance).  Kubernetes handles creating, attaching/mounting, deleting, and otherwise managing the disk.
 
-Different cloud providers have different types of disks that vary by performance and price.  Types of disks in cloud providers will be normalized internally to Kubernetes and the appropriate value
-used when accessing the provider.
+Different cloud providers have different types of disks that vary by performance and price.  Types of disks in cloud providers will be normalized internally to Kubernetes and the appropriate value used when accessing the provider.
 
-`PerformanceType: fast, faster, fastest`    or   `PerformanceType: Low, Normal, High`.     
+`PerformanceType: fast, faster, fastest`    or   `PerformanceType: Low, Normal, High`  (arbitrary names, suggestions welcome)
 
 AWS EBS mapping to internal types:
 
@@ -63,7 +82,7 @@ An attached disk may require formatting before being mounted as a filesystem on 
  
 `NodePersistentDisk` would either require creating a partion and formatting it with the filesystem of choice or only allow the filesystem that is currently on the host.
  
-> XFS is a filesystem that supports project quotas with regards to size and disk usage.  Without a quota in place, any pod can fill an EmptyDir or NodePersistentDisk.
+> XFS is a filesystem that supports project quotas with regards to size and disk usage.  Without a quota in place, any pod can fill the entire filesystem via an EmptyDir or NodePersistentDisk.
 
 Formatting must happen on the host.  Kubelet attaches a disk and mounts it.  If the disk is not formatted, Kubelet could perform this task in between attaching and mounting.  
 
@@ -75,6 +94,12 @@ by the Scheduler.
 
 It is important to secure disks only to those pods authorized to access them.  Disks and pods must belong to the same namespace.  Securing namespaces to users is required to keep pods from accessing disks
 that don't belong to them.  Security is implemented via an access control list whereby an administrator specifies which usernames can access which namespaces.  
+
+## Behavior
+
+* PersistentDisk.Status.Mounts must be updated as disks are attached and detached from hosts.
+* NodePersistentDisks are never detached and remain in PersistentDisk.Status.Mounts until the disk is deleted.
+
 
 ## <a name=schema></a>Schema
 
@@ -172,7 +197,7 @@ type VolumeSource struct {
 
 Every effort will be made to break this task into discrete pieces of functionality which can be committed as individual pulls/merges.
 
-![alt text](http://media-cache-ec0.pinimg.com/236x/da/a1/7e/daa17e92ba3a1b04e203135043db580b.jpg "How do you eat an elephant?")
+![](http://media-cache-ec0.pinimg.com/236x/da/a1/7e/daa17e92ba3a1b04e203135043db580b.jpg "How do you eat an elephant?")
 
 ### Phase One
 
@@ -307,9 +332,3 @@ _**likely changing due to #2598 above**_
 ### pkg/client
 
 * add volumes.go and client volume methods
-
-
-### TODO - describe new PersistentDisk object, storage,... 
-
-PersistentDisk.Status.Mounts must be updated when a Volume is requested or released by a pod. 
-
