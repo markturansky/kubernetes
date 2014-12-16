@@ -2,32 +2,27 @@
 
 ## Abstract
 
-This document defines persistent, cluster-scoped storage for applications that require long lived data.  Developers will request storage
-as an intention ("I'd like 3gb of storage, please") and Kubernetes will use the configured cloud provider implementation to create, manage, and secure
-that storage.  Names for storage will vary by cloud provider, but each shall be known internally to Kubernetes as a disk.
-A new entity `PersistentDisk` is introduced to provide longevity to data that outlasts pods.
+This document defines persistent, cluster-scoped storage for applications that require long lived data.  Developers will request storage as an intention ("I'd like 3gb of storage, please, with 3k min IOPS") and Kubernetes will use the configured cloud provider implementation to create, manage, and secure that storage.  Names for storage will vary by cloud provider, but each shall be known internally to Kubernetes as a disk. A new entity `PersistentDisk` is introduced to provide longevity to data that outlasts pods.
    
 PersistentDisks with mounting history provides a means for durable or node-specific data as a `NodePersistentDisk` [(see Eric Tune's discussion of this topic - #1515)](https://github.com/GoogleCloudPlatform/kubernetes/pull/1515).
 
 Kubernetes makes no guarantees at runtime that these volumes exist or are available. High availability is left to the storage provider.
  
 Disks are secured by restricting disks to the same namespace as the pods that request them.  [ACLs](../authorization.md) can restrict users to specific namespaces to prevent inadvertent access to a disk. Legacy disks are supported by administrative action.
-
  
 ## Goals
 
 * Divorce pod authors from ops
-	* Provide a means for pod authors to request disks and storage without requiring the operations team running Kubernetes.
+	* Provide a means for pod authors to request disks and storage without requiring actions from an ops team.
 * Implement dynamic storage for cloud providers (using GCE/AWS APIs to create disks/volumes)
-* Implement dynamic storage for non-cloud providers (pools of NFS shares and local node storage)
 * Provide working examples for each type of storage and cloud provider.
+
+## Future
+
+A means of mounting NFS shares to a host is a future requirement.  It is important to ensure this proposal does nothing to limit the ability of mounting NFS in future iterations.
 
 ## Constraints and Assumptions
 
-* NFS shares will not be created dynamically
-    * The system administrator will create, format, and export NFS shares into a pool.
-    * Scripts will be provided to make this task easier for admins.
-    * Responsibility for keeping the pool full is left to the administrator.
 * NodePersistentDisk can crash a host
     * Without quotas in place, any pod can fill the filesystem via an EmptyDir, HostDir, or NodePersistentDisk.
     * A filesystem like XFS provides project quotas.
@@ -36,59 +31,34 @@ Disks are secured by restricting disks to the same namespace as the pods that re
  	* Existing named disks are supported by administrative action (adding disk objects in etcd)
 
 
-## Size and Performance -- Requesting a disk 
+## Disk performance attributes -- Requesting a disk 
 
-A storage request is made using the API where only intent is expressed (size and performance).  Kubernetes handles creating, attaching/mounting, deleting, and otherwise managing the disk.
+Pod authors can request storage by its characteristics, specifically size, performance, and filesystem.  Kubernetes maps the request to the underlying cloud provider and chooses the best match.
 
-Different cloud providers have different types of disks that vary by performance and price.  Types of disks in cloud providers will be normalized internally to Kubernetes and the appropriate value used when accessing the provider.
+> Example: Alice requests 1gb of space for a WordPress installation expected to have low traffic.  She requests "1gb, ext4, 100 IOPS".   Kubernetes is running in AWS and matches this request to an EBS Magnetic Volume (max oops 40-200).  K8s uses the AWS API to create the disk, attach it to the host, format the filesystem, mount the volume, and then deploys Alice's pod.
 
-`PerformanceType: fast, faster, fastest`    or   `PerformanceType: Low, Normal, High`  (arbitrary names, suggestions welcome)
+> Example:  Ralph requests 10gb of high performance disk space for a MySQL database.  He requests "10gb, xfs, 10000 IOPS".  Cabernets is running in GCE and matches this request to a 
+SSD Persistent Disk (read/write 10k/15k IOPS, respectively).  K8s uses the GCE API to create Ralph's disk, just as it did in Alice's example above.
 
-AWS EBS mapping to internal types:
-
-    fastest:    'io1' for Provisioned IOPS (SSD) volumes 
-    faster:      'gp2' for General Purpose (SSD) volumes
-    fast:       'standard' for Magnetic volumes  (default)
-
-GCE disk mapping to internal types:
-
-    fastest:    'pd-ssd' for solid-state drives
-    faster:     'pd-standard' for hard disk (defaut)
-    fast:       'pd-standard' -- there is no 3rd option for GCE
-    
-NFS disk mapping to internal types:
-
-    fastest:    'nodeLocal' for node local storage
-    faster:     'nfsShare' an NFS share on the network
-    fast:       'nfsShare' -- there is no 3rd option for NFS
     
 ## DiskController
 
 Add a new daemon to master that watches for changes to PersistentDisk in etcd.
 
 New disk requests are posted to the API server and are stored in etcd with "pending" status.  The DiskController sees the
-change and creates the disk using the cloud provider under which Kubernetes is running (e.g, if in AWS, EBS Volumes are created, etc).
-Each provider knows how to make disks for its infrastructure.
+change and creates the disk using the cloud provider under which Kubernetes is running (i.e, AWS and GCE). Each provider knows how to make disks for its infrastructure.
   
-After creation, the disk goes from "pending" to "created" state.
+After creation, the disk phase goes from "pending" to "created".
 
 ## Formatting Options
 
-An attached disk may require formatting before being mounted as a filesystem on the host.
-  
-`GCEPersistentDisk` and `AWSPersistentDisk`, for example, are created as unformatted block storage.
-
-`NFSPersistentDisk`, on the other hand, would come from a pool of created, formatted, and exported shares to mount.
+Disks created in GCE and AWS require formatting before being mounted as a filesystem on the host.
  
 `NodePersistentDisk` would either require creating a partion and formatting it with the filesystem of choice or only allow the filesystem that is currently on the host.
  
 > XFS is a filesystem that supports project quotas with regards to size and disk usage.  Without a quota in place, any pod can fill the entire filesystem via an EmptyDir or NodePersistentDisk.
 
-Formatting must happen on the host.  Kubelet attaches a disk and mounts it.  If the disk is not formatted, Kubelet could perform this task in between attaching and mounting.  
-
-DiskController does not seem like the actor to format disks, unless the disk is attached to an arbitrary host for formatting and then detached before a pod is placed on the host
-by the Scheduler.   
-
+Formatting must happen on the host.  Kubelet attaches a disk and mounts it.  If the disk is not formatted, Kubelet will perform this task in between attaching and mounting.  
 
 ## Security and Disk Ownership
 
@@ -100,17 +70,17 @@ that don't belong to them.  Security is implemented via an access control list w
 * PersistentDisk.Status.Mounts must be updated as disks are attached and detached from hosts.
 * NodePersistentDisks are never detached and remain in PersistentDisk.Status.Mounts until the disk is deleted.
 
+## Volumes Framework
+
+See [Tim Hockin's volumes framework](https://github.com/GoogleCloudPlatform/kubernetes/pull/2598)
 
 ## <a name=schema></a>Schema
 
-* Add new top-level PersistentDisk object
-    * Reasons:
-        1. Disks are 1:N.  Normalizing the schema makes sense for this reuse.
-        2. Disks have identity. Disks outlive pods. Their IDs must be persistent for future re-mounting.
-        3. Disk identity is paired with username for security.
-        4. API required to delete old disks as a separate action from deleting pods (not all pod deletes should delete the disk)
+* Add new top-level PersistentDisk REST object
+    * Disks have identity. Disks outlive pods. Their IDs must be persistent for future re-mounting.
+    * Disks requests are not expected to be POSTed to the API server.  
+    * Top level REST object is required to query for lists of disks, see their condition, and for deletion (as necessary)
 * Separate Spec and Status for disks
-    * DiskSpec contains one of the specific disk types (GCE, AWS, NFS, NodeLocal)
     * Status keeps mount history for X days, allows pods to preferentially schedule onto previously used hosts
 
 
@@ -139,11 +109,14 @@ struct DiskSpec {
 
 struct DiskStatus {
 
-    // PodCondition recently became PodPhase - see https://github.com/GoogleCloudPlatform/kubernetes/pull/2522
-    Condition   DiskCondition
+	// PodCondition recently became PodPhase - see https://github.com/GoogleCloudPlatform/kubernetes/pull/2522
+	Condition   DiskCondition
     
-    // a disk can be mounted on many hosts, depending on type
-    Mounts []Mount
+    	// a disk can be mounted on many hosts, depending on type.
+    	Mounts []Mount
+    
+	// used for NodePersistentDisk and  to determine how long a disk has been orphaned
+	LastMount	Mount
 }
 
 struct Mount struct {
@@ -157,16 +130,17 @@ type DiskCondition string
 
 const (
     MountPending    DiskCondition = "Pending"
-    Attached        DiskCondition = "Attached"
-    Mounted         DiskCondition = "Mounted"
-    MountFailed     DiskCondition = "Failed"
+    Attached        	DiskCondition = "Attached"
+    Mounted         	DiskCondition = "Mounted"
+    MountFailed     	DiskCondition = "Failed"
+    MountDelete		DiskCondition = "Deleted"
 )
 
 type DiskPerformanceType string
 
 const (
-    Fast            DiskPerformanceType  = "fast"
-    Faster          DiskPerformanceType  = "faster"
+    Fast            	DiskPerformanceType  = "fast"
+    Faster          	DiskPerformanceType  = "faster"
     Fastest         DiskPerformanceType  = "fastest"
 )
 
@@ -182,40 +156,11 @@ type VolumeSource struct {
 	GitRepo *GitRepo `json:"gitRepo"`
 	
     // Optional: Defaults to false (read/write). 
-    // the ReadOnly setting in VolumeMounts.
     // This allows many GCE VMs to attach a single PersistentDisk many times in read-only mode
 	ReadOnly bool
 }
 
 ```
-
-
-
-> ## everything below will be updated once the concepts above are finalized.  Tech analysis and design to follow requirements for disks.
-
-## Phased Approach
-
-Every effort will be made to break this task into discrete pieces of functionality which can be committed as individual pulls/merges.
-
-![](http://media-cache-ec0.pinimg.com/236x/da/a1/7e/daa17e92ba3a1b04e203135043db580b.jpg "How do you eat an elephant?")
-
-### Phase One
-
-See [Tim Hockin's new volumes framework](https://github.com/GoogleCloudPlatform/kubernetes/pull/2598)
-
-* Use existing volumes (and working with Tim's code above) framework  
-* Implement AWSPersistentDisk
-* Implement NFSPersistentDisk
-* Have both new disk types reach parity with GCEPersistentDisk
-
-### Phase Two
-
-* Implement PersistentDisk framework
-* Implement NodeLocalDisk
-
-### Phase Three
-
-* Implement creation and management of disks
 
  
 ## Disk implementations
@@ -226,7 +171,7 @@ See [Tim Hockin's new volumes framework](https://github.com/GoogleCloudPlatform/
 1. Disks have identity that can outlive a pod.
 1. Disks must share the same namespace as a pod.
 1. Pods can have many volumes of many types except for cloud provider disks (GCE, AWS).
-1. Pods can have only a single cloud provider disk (GCE, AWS).
+1. Pods can have only a single type of cloud provider disk (GCE, AWS, not both).
 
 ### GCEPersistentDisk
 
@@ -244,19 +189,13 @@ See [Tim Hockin's new volumes framework](https://github.com/GoogleCloudPlatform/
 1. AWS Encrypted disks can only be attached to VMs that support EBS encryption
 1. Attachments limited by Amazon account, not ES2 instance limit.
 1. High-availability subject to the AWS Service Level Agreement.
- 
-### NFSPersistentDisk
 
-1. NFSPersistentDisks can be mounted many times as read/write.
-1. NFSPD will not support file locking.  This responsibility remains with the application developer. 
-1. High availability of data is left to the cluster administrator.
-
-### NodeLocalDisk
+### NodePersistentDisk
 
 1. Local node directory similar to EmptyDir but is not deleted upon pod exit.
 1. NodePD has long lived identity but local storage cannot be relied upon (e.g, disk failure, host crash)
 1. The scheduler will attempt to place a pod on the host where the NodePD lives.
-1. High availability of data is left to the cluster administrator.
+1. High availability of data is left to the cluster administrator.  It is not guaranteed the host (and disk) is available.
 
 
 
@@ -294,7 +233,7 @@ _**likely changing due to #2598 above**_
 
 #### types.go
 
-* add AWSPersistentDisk, NFSPersistentDisk, NodeLocalDisk structs
+* add AWSPersistentDisk, NFSPersistentDisk, NodePersistentDisk structs
 * add new types to VolumeSource struct
 * add new PersistentDisk and related structs
 * repeat in pkg/api/v1beta3/types.go
