@@ -83,84 +83,8 @@ See [Tim Hockin's volumes framework](https://github.com/GoogleCloudPlatform/kube
 * Separate Spec and Status for disks
     * Status keeps mount history for X days, allows pods to preferentially schedule onto previously used hosts
 
+> **See types.go for structs**
 
-```go
-
-
-struct PersistentDisk {
-
-    TypeMeta
-    ObjectMeta      //namespace will be required.  access to disks only allowed in same namespace for security
-	
-	// separating *PersistentDisk into Spec and Status like other API objects
-	Spec    DiskSpec
-	Status  DiskStatus
-}
-
-struct DiskSpec {
-
-    // size of the disk, in gb
-    Size        int
-    
-    // references various performance types in a cloud provider 
-    Type        DiskPerformanceType    
-}
-
-
-struct DiskStatus {
-
-	// PodCondition recently became PodPhase - see https://github.com/GoogleCloudPlatform/kubernetes/pull/2522
-	Condition   DiskCondition
-    
-    	// a disk can be mounted on many hosts, depending on type.
-    	Mounts []Mount
-    
-	// used for NodePersistentDisk and  to determine how long a disk has been orphaned
-	LastMount	Mount
-}
-
-struct Mount struct {
-    Host            string
-    HostIP          string
-    MountedDate     string  //RFC 3339 format (e.g, 1985-04-12T23:20:50.52Z)
-    MountCondition  DiskCondition
-}
-
-type DiskCondition string
-
-const (
-    MountPending    DiskCondition = "Pending"
-    Attached        	DiskCondition = "Attached"
-    Mounted         	DiskCondition = "Mounted"
-    MountFailed     	DiskCondition = "Failed"
-    MountDelete		DiskCondition = "Deleted"
-)
-
-type DiskPerformanceType string
-
-const (
-    Fast            	DiskPerformanceType  = "fast"
-    Faster          	DiskPerformanceType  = "faster"
-    Fastest         DiskPerformanceType  = "fastest"
-)
-
-type VolumeSource struct {
-	HostDir *HostDir
-	EmptyDir *EmptyDir 
-	
-	// changed from specific GCEPersistentDisk.
-	// selectors that can find a PersistentDisk to attach and mount.
-	// could substitute a named disk for selectors.
-	Selector []map[string]
-	
-	GitRepo *GitRepo `json:"gitRepo"`
-	
-    // Optional: Defaults to false (read/write). 
-    // This allows many GCE VMs to attach a single PersistentDisk many times in read-only mode
-	ReadOnly bool
-}
-
-```
 
  
 ## Disk implementations
