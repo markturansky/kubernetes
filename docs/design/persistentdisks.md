@@ -48,7 +48,13 @@ Watches etcd for new volume requests from pod authors.  Volumes are POSTed to th
 
 ### `CloudStorageAttachingController`
 
-As pods are scheduled onto hosts, the VolumeAttachingController performs the task of attaching a block device (GCE PD or AWS EBS volume) to a host.  Kubelet mounts the volume for the pod, and the volume will already be attached by the time Kubelet performs this task.
+As pods are scheduled onto hosts, the CloudStorageAttachingController performs the task of attaching a block device (GCE PD or AWS EBS volume) to a host.  Kubelet mounts the volume for the pod, and the volume will already be attached by the time Kubelet performs this task.
+
+Note:  Find where reconciliation happens if host crashes and PersistentStorage.Status is not updated.  The status needs to be available for reattachement elsewhere.
+Note:  Find where reconciliation happens if pod crashes and PersistentStorage.Status is not updated.  The status needs to be available for reattachement elsewhere.
+What happens to a mounted filesystem if the host stops responding on the network interface? Forgiveness?
+What happens to a mounted filesystem if detach is called but the mount remains?
+
 
 ## Security
 
@@ -86,7 +92,7 @@ Storage is secured by restricting it to the same namespace as the pod requesting
     2.  Future refactor -- remove attaching from GCEPersistentDisk, allow StorageAttachingController to attach the PD
 
 
-# Detailed Use Cases and System Effects
+# Use Cases and System Effects
 
 The following use cases intend to show the order of operations for creating and using persistent volumes as well as the components of the system that are responsible for each part of the work flow.  Several use cases are provided to show how persistent volumes are requested, provisioned, secured, and potentially deleted.
 
@@ -98,10 +104,9 @@ The following use cases intend to show the order of operations for creating and 
  User Story | System Action
  -----|-----
 Admin Ed creates an EC2 instance, creates, attaches, and formats 20 EBS volumes (list below).  All volumes are subsequently detached from the instance and the instance shutdown, but the volumes remain in AWS.  Admin Ed maintains a list of all EBS volume IDs.	 | System does nothing.  Automation scripts can help future Admin Ed handle the task of creating volumes and tracking their IDs
-
 Admin Ed creates 20 pooledvolume.json files, each containing a description and unique ID of the EBS volume created earlier.  He posts each json file to the api server.  Each are validated and Admin Ed queries the cluster for a list of persistent volumes after he is done posting them.  All 20 are shown. 								 | The api server validates each POST and stores each volume as a new `PooledVolume` object in etcd.
-
 Admin Ed takes a break because those previous two steps were tedious.  | Manual tasks like these are easy automation targets.
+
 
 ### Volumes created by Admin Ed
 
@@ -130,9 +135,7 @@ Quantity | Size (gb) | Type
  User Story | System Action
  -----|-----
 Trixie wants to create a WordPress blog and needs persistent storage.  She first creates persistentvolume.json (namespace='Team Norton', name='WP Blog', size='1') and POSTs it to the api server.  After receiving a successful response, she queries the cluster for persistent volumes and sees her volume request in phase 'Pending'. | After successful validation, the API server creates a `PersistentVolume` object in etcd with the phase  'Pending'
-
 Trixie waits and queries the cluster again to see if her volume has been created.  She sees it in phase 'Created'.  There was much rejoicing. | `VolumeBindingController` is watching etcd for new volume requests and fulfills them by creating `VolumeBinding` objects. <br><br>  A 1gb volume is available in the pool.  A new `VolumeBinding` object is created using PooledVolume.ID and PersistentVolume.ID and stores it in etcd.  The PooledVolume status is changed to 'Unavailable'.  The PersistentVolume.Phase is changed to 'Created' 
-
 Trixie creates pod.json (or replController.json) with a suitable WordPress image containing the entire LAMP stack.  The `VolumeSource` struct for her pod contains `PersistentVolumeRef` which references her PersistentVolume by name.  The `VolumeMount` object referencing the volume contains a path to the container where MySQL expects to find its data. | API server validates the persistent volume exists by name in etcd along with existing pod validation.  A `Pod` object is created and stored in etcd.
 
 tbd | more details to come
@@ -143,8 +146,9 @@ Add details showing how requesting storage across namespaces is enforced
 
  User Story | System Action
  -----|-----
-tbd | tbd 
-
+Ralph requests storage in 'Team Kramden' and using the name 'WP Blog' | Valid in the namespace, created in etcd
+Ralph changes the namespace to access Trixie's blog | ACL denies Ralph access to the 'Team Kramden' namespace
+Alice changes the namespace to 'Team Norton' from 'Team Kramden' | Namespace change is denied.
 
 ### Failed Validation Stories
 
