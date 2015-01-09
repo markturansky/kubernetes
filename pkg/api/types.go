@@ -211,6 +211,20 @@ type PooledStorage struct {
 	ObjectMeta `json:"metadata,omitempty"`
 	Spec       PooledStorageSpec   `json:"spec,omitempty"`
 	Status     PooledStorageStatus `json:"status,omitempty"`
+}
+
+
+// binding between a PooledStorage instance an a PersistentStorage request
+type BoundStorage struct {
+	PooledStorageUID 		string
+	PersistentStorageUID	string
+}
+
+type PooledStorageStatus struct {
+	Phase StoragePhase `json:"phase,omitempty"`
+}
+
+type PooledStorageSpec struct {
 
 	// unique identifier of the storage device relative to the provider
 	// ex: an AWS EBS volume ID
@@ -235,11 +249,6 @@ type PooledStorage struct {
 	Source		*PooledStorageSource	`json:source`
 }
 
-// binding between a PooledStorage instance an a PersistentStorage request
-type BoundStorage struct {
-	PooledStorageUID 		string
-	PersistentStorageUID	string
-}
 
 // PooledStorageSource represents the source of storage in the underlying provider
 // similar to VolumeSource, PooledStorage can have only one of these
