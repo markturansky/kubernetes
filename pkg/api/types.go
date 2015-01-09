@@ -259,13 +259,14 @@ type AWSPersistentStorage struct {
 }
 
 type NFSPersistentStorage struct {
+	// uses SourcePath in PooledStorageSpec and concats the server name
 	Server	string
 }
 
 type NodePersistentStorage struct {
-	// host on which the storage device is found
+	// uses SourcePath in PooledStorageSpec
+	// host on which the storage path is found
 	Host	string
-	Path	string
 }
 
 type Mount struct {
