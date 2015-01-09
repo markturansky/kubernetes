@@ -165,47 +165,26 @@ type VolumeSource struct {
 	// kubelet's host machine and then exposed to the pod.
 	GCEPersistentDisk *GCEPersistentDisk `json:"persistentDisk"`
 
-	// IMPORTANT!  GCEPersistentDisk will be refactored into PersistentDisk.
-	// For this proposal, it is left in for compilation purposes.
-
-	// DiskSpec represents a request for persistent storage that is attached to
-	// kubelet's host machine and then exposed to the pod.
-	// The specific implementation of storage is obtained through the cloud provider.
-	PersistentDisk *PersistentDisk `json:diskSpec`
+	// the named PersistentStorage object this VolumeSource wants to expose to a pod
+	// PersistentStorage must be requested and bound to available storage before it can be used
+	PersistentStorageName string `json:persistentStorageName`
 }
 
-type PersistentDisk struct {
+type PersistentStorage struct {
 	TypeMeta   `json:",inline"`
 	ObjectMeta `json:"metadata,omitempty"`
-	Spec       DiskSpec   `json:"spec,omitempty"`
-	Status     DiskStatus `json:"status,omitempty"`
+	Spec       PersistentStorageSpec   `json:"spec,omitempty"`
+	Status     PersistentStorageStatus `json:"status,omitempty"`
 }
 
-type DiskSpec struct {
+type PersistentStorageSpec struct {
 
-	// unique name of the PD resource.
-	// used to identify the disk in GCE or AWS
-	PDName string `json: "pdName"`
-
-	// policy that specifies whether to delete a disk (or not) when a pod is deleted
-	RetentionPolicy RetentionPolicy `json: "retentionPolicy"`
+	// unique identifier of the storage device relative to the provider
+	// ex: an AWS EBS volume ID
+	StorageID string `json: "storageId"`
 
 	// size of the disk, in gb
 	Size int `json:"size"`
-
-	// Required: Filesystem type to mount.
-	// Must be a filesystem type supported by the host operating system.
-	// Ex. "ext4", "xfs", "ntfs"
-	// TODO: how do we prevent errors in the filesystem from compromising the machine
-	FSType string `json:"fsType,omitempty"`
-
-	// Optional: Partition on the disk to mount.
-	// If omitted, kubelet will attempt to mount the device name.
-	// Ex. For /dev/sda1, this field is "1", for /dev/sda, this field is 0 or empty.
-	Partition int `json:"partition,omitempty"`
-	// Optional: Defaults to false (read/write). ReadOnly here will force
-	// the ReadOnly setting in VolumeMounts.
-	ReadOnly bool `json:"readOnly,omitempty"`
 
 	// minimum performance of the disk, in IOPS.
 	// corresponds to performance attributes in GCE/AWS
@@ -216,8 +195,8 @@ type DiskSpec struct {
 	MinimumThroughput int `json:"minimumThroughput,omitempty"`
 }
 
-type DiskStatus struct {
-	Phase DiskPhase `json:"phase,omitempty"`
+type PersistentStorageStatus struct {
+	Phase StoragePhase `json:"phase,omitempty"`
 
 	// a disk can be mounted on many hosts, depending on type.
 	Mounts []Mount `json:"mounts"`
@@ -227,30 +206,97 @@ type DiskStatus struct {
 	LastMount Mount `json:"lastMount,omitempty"`
 }
 
-type Mount struct {
-	Host        string    `json:"host,omitempty"`
-	HostIP      string    `json:"hostIP,omitempty"`
-	MountedDate util.Time `json:"mountedDate,omitempty"`
-	Phase       DiskPhase `json:"phase,omitempty"`
+type PooledStorage struct {
+	TypeMeta   `json:",inline"`
+	ObjectMeta `json:"metadata,omitempty"`
+	Spec       PooledStorageSpec   `json:"spec,omitempty"`
+	Status     PooledStorageStatus `json:"status,omitempty"`
 }
 
-type RetentionPolicy string
+type PooledStorageStatus struct {
+	// tbd
+}
+
+type PooledStorageSpec struct {
+
+	// unique identifier of the storage device relative to the provider
+	// ex: an AWS EBS volume ID
+	StorageID string `json: "storageId"`
+
+	// size of the disk, in gb
+	Size int `json:"size"`
+
+	// minimum performance of the disk, in IOPS.
+	// corresponds to performance attributes in GCE/AWS
+	MinimumIOPS int `json:"minimumIOPS,omitempty"`
+
+	// minimum performance of the disk, in MBps.
+	// corresponds to performance attributes in GCE/AWS
+	MinimumThroughput int `json:"minimumThroughput,omitempty"`
+
+	FSType		string	`json:fsType,omitempty`
+	FSOptions	string	`json:fsOptions,omitempty`
+	FSFlags 	string	`json:fsFlags,omitempty`
+	SourcePath	string	`json:sourcePath,omitempty`
+
+	Source *PooledStorageSource	`json:source`
+
+}
+
+// binding between a PooledStorage instance an a PersistentStorage request
+type BoundStorage struct {
+	PooledStorageUID 		string
+	PersistentStorageUID	string
+
+}
+
+// PooledStorageSource represents the source of storage in the underlying provider
+// similar to VolumeSource, PooledStorage can have only one of these
+type PooledStorageSource struct {
+
+	GCEStorageSource 		*GCEStorageSource		`json:gcePersistentStorage`
+	AWSPersistentStorage 	*AWSPersistentStorage	`json:awsPersistentStorage`
+	NFSPersistentStorage 	*NFSPersistentStorage	`json:nfsPersistentStorage`
+	NodePersistentStorage	*NodePersistentStorage	`json:nodePersistentStorage`
+}
+
+type GCEStorageSource struct {
+	// GCE specific info here
+}
+
+type AWSPersistentStorage struct {
+	// AWS specific info here
+}
+
+type NFSPersistentStorage struct {
+	Server	string
+	Path	string
+	Options string
+}
+
+type NodePersistentStorage struct {
+	// host on which the storage device is found
+	Host	string
+	Path	string
+}
+
+type Mount struct {
+	Host        string    		`json:"host,omitempty"`
+	HostIP      string    		`json:"hostIP,omitempty"`
+	MountedDate util.Time 		`json:"mountedDate,omitempty"`
+	Phase       StoragePhase 	`json:"phase,omitempty"`
+}
+
+type StoragePhase string
 
 const (
-	DeleteOnPodDelete RetentionPolicy = "DeleteOnPodDeletion"
-	RetainOnPodDelete RetentionPolicy = "RetainOnPodDelete"
-)
-
-type DiskPhase string
-
-const (
-	MountPending DiskPhase = "Pending"
-	Attached     DiskPhase = "Attached"
-	Formatting   DiskPhase = "Formatting"
-	Formatted    DiskPhase = "Formatted"
-	Mounted      DiskPhase = "Mounted"
-	MountFailed  DiskPhase = "Failed"
-	MountDelete  DiskPhase = "Deleted"
+	MountPending StoragePhase = "Pending"
+	Attached     StoragePhase = "Attached"
+	Formatting   StoragePhase = "Formatting"
+	Formatted    StoragePhase = "Formatted"
+	Mounted      StoragePhase = "Mounted"
+	MountFailed  StoragePhase = "Failed"
+	MountDelete  StoragePhase = "Deleted"
 )
 
 // HostDir represents bare host directory volume.
