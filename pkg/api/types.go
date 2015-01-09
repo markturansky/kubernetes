@@ -211,13 +211,6 @@ type PooledStorage struct {
 	ObjectMeta `json:"metadata,omitempty"`
 	Spec       PooledStorageSpec   `json:"spec,omitempty"`
 	Status     PooledStorageStatus `json:"status,omitempty"`
-}
-
-type PooledStorageStatus struct {
-	// tbd
-}
-
-type PooledStorageSpec struct {
 
 	// unique identifier of the storage device relative to the provider
 	// ex: an AWS EBS volume ID
@@ -239,21 +232,18 @@ type PooledStorageSpec struct {
 	FSFlags 	string	`json:fsFlags,omitempty`
 	SourcePath	string	`json:sourcePath,omitempty`
 
-	Source *PooledStorageSource	`json:source`
-
+	Source		*PooledStorageSource	`json:source`
 }
 
 // binding between a PooledStorage instance an a PersistentStorage request
 type BoundStorage struct {
 	PooledStorageUID 		string
 	PersistentStorageUID	string
-
 }
 
 // PooledStorageSource represents the source of storage in the underlying provider
 // similar to VolumeSource, PooledStorage can have only one of these
 type PooledStorageSource struct {
-
 	GCEStorageSource 		*GCEStorageSource		`json:gcePersistentStorage`
 	AWSPersistentStorage 	*AWSPersistentStorage	`json:awsPersistentStorage`
 	NFSPersistentStorage 	*NFSPersistentStorage	`json:nfsPersistentStorage`
@@ -261,17 +251,15 @@ type PooledStorageSource struct {
 }
 
 type GCEStorageSource struct {
-	// GCE specific info here
+	// GCE specific info here, as needed
 }
 
 type AWSPersistentStorage struct {
-	// AWS specific info here
+	// AWS specific info here, as needed
 }
 
 type NFSPersistentStorage struct {
 	Server	string
-	Path	string
-	Options string
 }
 
 type NodePersistentStorage struct {
