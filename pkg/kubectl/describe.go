@@ -45,6 +45,8 @@ func DescriberFor(kind string, c *client.Client) (Describer, bool) {
 		return &ReplicationControllerDescriber{c}, true
 	case "Service":
 		return &ServiceDescriber{c}, true
+	case "PersistentVolume":
+		return &PersistentVolumeDescriber{c}, true
 	case "Minion", "Node":
 		return &MinionDescriber{c}, true
 	}
@@ -104,6 +106,27 @@ func (d *PodDescriber) Describe(namespace, name string) (string, error) {
 		if events != nil {
 			describeEvents(events, out)
 		}
+		return nil
+	})
+}
+
+type PersistentVolumeDescriber struct {
+	client.Interface
+}
+
+func (d *PersistentVolumeDescriber) Describe(namespace, name string) (string, error) {
+	c := d.PersistentVolumes(namespace)
+
+	pv, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out io.Writer) error {
+		fmt.Fprintf(out, "Name:\t%s\n", pv.Name)
+		fmt.Fprintf(out, "Labels:\t%s\n", formatLabels(pv.Labels))
+		fmt.Fprintf(out, "Status:\t%d\n", pv.Status.Phase)
+
 		return nil
 	})
 }

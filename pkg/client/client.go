@@ -37,6 +37,7 @@ type Interface interface {
 	VersionInterface
 	NodesInterface
 	EventNamespacer
+	PersistentVolumesNamespacer
 }
 
 func (c *Client) ReplicationControllers(namespace string) ReplicationControllerInterface {
@@ -61,6 +62,10 @@ func (c *Client) Pods(namespace string) PodInterface {
 
 func (c *Client) Services(namespace string) ServiceInterface {
 	return newServices(c, namespace)
+}
+
+func (c *Client) PersistentVolumes(namespace string) PersistentVolumeInterface {
+	return newPersistentVolumes(c, namespace)
 }
 
 // VersionInterface has a method to retrieve the server version.

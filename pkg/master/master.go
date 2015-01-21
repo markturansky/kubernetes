@@ -41,6 +41,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/persistentvolume"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/binding"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/endpoint"
@@ -55,9 +56,11 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/persistentstoragedevice"
 )
 
 // Config is a structure used to configure a Master.
@@ -102,16 +105,18 @@ type Config struct {
 // Master contains state for a Kubernetes cluster master/api server.
 type Master struct {
 	// "Inputs", Copied from Config
-	podRegistry        pod.Registry
-	controllerRegistry controller.Registry
-	serviceRegistry    service.Registry
-	endpointRegistry   endpoint.Registry
-	minionRegistry     minion.Registry
-	bindingRegistry    binding.Registry
-	eventRegistry      generic.Registry
-	storage            map[string]apiserver.RESTStorage
-	client             *client.Client
-	portalNet          *net.IPNet
+	podRegistry        					pod.Registry
+	controllerRegistry 					controller.Registry
+	serviceRegistry    					service.Registry
+	endpointRegistry   					endpoint.Registry
+	minionRegistry     					minion.Registry
+	bindingRegistry    					binding.Registry
+	eventRegistry      					generic.Registry
+	persistentVolumeRegistry 			persistentvolume.Registry
+	persistentStorageDeviceRegistry 	persistentstoragedevice.Registry
+	storage            					map[string]apiserver.RESTStorage
+	client             					*client.Client
+	portalNet          					*net.IPNet
 
 	mux                   apiserver.Mux
 	handlerContainer      *restful.Container
@@ -246,6 +251,7 @@ func New(c *Config) *Master {
 		endpointRegistry:      etcd.NewRegistry(c.EtcdHelper, nil),
 		bindingRegistry:       etcd.NewRegistry(c.EtcdHelper, boundPodFactory),
 		eventRegistry:         event.NewEtcdRegistry(c.EtcdHelper, uint64(c.EventTTL.Seconds())),
+		persistentVolumeRegistry:	etcd.NewRegistry(c.EtcdHelper, nil),
 		minionRegistry:        minionRegistry,
 		client:                c.Client,
 		portalNet:             c.PortalNet,
@@ -356,6 +362,8 @@ func (m *Master) init(c *Config) {
 		"minions":                nodeRESTStorage,
 		"nodes":                  nodeRESTStorage,
 		"events":                 event.NewREST(m.eventRegistry),
+		"persistentVolumes":	  persistentvolume.NewREST(m.persistentVolumeRegistry),
+		"persistentStorageDevices":	  persistentstoragedevice.NewREST(m.persistentStorageDeviceRegistry),
 
 		// TODO: should appear only in scheduler API group.
 		"bindings": binding.NewREST(m.bindingRegistry),

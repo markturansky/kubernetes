@@ -48,6 +48,10 @@ func init() {
 		&BoundPod{},
 		&BoundPods{},
 		&List{},
+		&PersistentVolume{},
+		&PersistentVolumeList{},
+		&PersistentStorageDevice{},
+		&PersistentStorageDeviceList{},
 	)
 	// Future names are supported
 	api.Scheme.AddKnownTypeWithName("v1beta1", "Node", &Minion{})
@@ -78,3 +82,7 @@ func (*ContainerManifestList) IsAnAPIObject()     {}
 func (*BoundPod) IsAnAPIObject()                  {}
 func (*BoundPods) IsAnAPIObject()                 {}
 func (*List) IsAnAPIObject()                      {}
+func (*PersistentVolume) IsAnAPIObject()          {}
+func (*PersistentVolumeList) IsAnAPIObject()      {}
+func (*PersistentStorageDevice) IsAnAPIObject()   {}
+func (*PersistentStorageDeviceList) IsAnAPIObject()   {}

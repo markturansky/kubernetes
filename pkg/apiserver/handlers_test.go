@@ -79,6 +79,7 @@ func TestKindAndNamespace(t *testing.T) {
 		{"GET", "/pods/foo", api.NamespaceDefault, "pods", []string{"pods", "foo"}},
 		{"GET", "/pods/foo?namespace=other", "other", "pods", []string{"pods", "foo"}},
 		{"GET", "/pods?namespace=other", "other", "pods", []string{"pods"}},
+		{"GET", "/persistentvolumes?namespace=other", "other", "persistentvolumes", []string{"persistentvolumes"}},
 
 		// special verbs
 		{"GET", "/proxy/ns/other/pods/foo", "other", "pods", []string{"pods", "foo"}},

@@ -48,6 +48,10 @@ func init() {
 		&Event{},
 		&EventList{},
 		&List{},
+		&PersistentVolume{},
+		&PersistentVolumeList{},
+		&PersistentStorageDevice{},
+		&PersistentStorageDeviceList{},
 	)
 	// Legacy names are supported
 	api.Scheme.AddKnownTypeWithName("v1beta3", "Minion", &Node{})
@@ -78,3 +82,7 @@ func (*OperationList) IsAnAPIObject()             {}
 func (*Event) IsAnAPIObject()                     {}
 func (*EventList) IsAnAPIObject()                 {}
 func (*List) IsAnAPIObject()                      {}
+func (*PersistentVolume) IsAnAPIObject()          {}
+func (*PersistentVolumeList) IsAnAPIObject()      {}
+func (*PersistentStorageDevice) IsAnAPIObject()   {}
+func (*PersistentStorageDeviceList) IsAnAPIObject()   {}

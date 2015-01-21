@@ -44,13 +44,17 @@ const (
 	ServiceEndpointPath string = "/registry/services/endpoints"
 	// NodePath is the path to node resources in etcd
 	NodePath string = "/registry/minions"
+	// PersistentVolumePath is the path to persistent volume resources in etcd
+	PersistentVolumePath string = "/registry/persistentVolumes"
+	// PersistentStorageDevicePath is the path to persistent storage device resources in etcd
+	PersistentStorageDevicePath string = "/registry/persistentStorageDevices"
 )
 
 // TODO: Need to add a reconciler loop that makes sure that things in pods are reflected into
 //       kubelet (and vice versa)
 
 // Registry implements BindingRegistry, ControllerRegistry, EndpointRegistry,
-// MinionRegistry, PodRegistry and ServiceRegistry, backed by etcd.
+// MinionRegistry, PodRegistry, ServiceRegistry, and PersistentVolumeRegistry backed by etcd.
 type Registry struct {
 	tools.EtcdHelper
 	boundPodFactory pod.BoundPodFactory
@@ -633,4 +637,79 @@ func (r *Registry) WatchMinions(ctx api.Context, label, field labels.Selector, r
 		// TODO: Add support for filtering based on field, once NodeStatus is defined.
 		return label.Matches(labels.Set(minionObj.Labels))
 	})
+}
+
+func (r *Registry) ListPersistentVolumes(ctx api.Context, field labels.Selector) (*api.PersistentVolumeList, error) {
+	volumes := &api.PersistentVolumeList{}
+	key := makeControllerListKey(ctx)
+	err := r.ExtractToList(key, volumes)
+	return volumes, err
+}
+
+// WatchPersistentVolumes begins watching for new, changed, or deleted persistent volumes.
+func (r *Registry) WatchPersistentVolumes(ctx api.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+
+	version, err := tools.ParseWatchResourceVersion(resourceVersion, "persistentVolumes")
+	if err != nil {
+		return nil, err
+	}
+	key := makePersistentVolumeListKey(ctx)
+	return r.WatchList(key, version, func(obj runtime.Object) bool {
+			persistentVolume, ok := obj.(*api.PersistentVolume)
+			if !ok {
+				// Must be an error: return true to propagate to upper level.
+				return true
+			}
+			return label.Matches(labels.Set(persistentVolume.Labels))
+		})
+}
+
+// makePersistentVolumeListKey constructs etcd paths to persistent volume directories enforcing namespace rules.
+func makePersistentVolumeListKey(ctx api.Context) string {
+	return MakeEtcdListKey(ctx, PersistentVolumePath)
+}
+
+// makePersistentVoumeKey constructs etcd paths to persistent volume items enforcing namespace rules.
+func makePersistentVoumeKey(ctx api.Context, id string) (string, error) {
+	return MakeEtcdItemKey(ctx, PersistentVolumePath, id)
+}
+
+func (r *Registry) GetPersistentVolume(ctx api.Context, persistentVolumeID string) (*api.PersistentVolume, error) {
+	var pv api.PersistentVolume
+	key, err := makePersistentVoumeKey(ctx, persistentVolumeID)
+	if err != nil {
+		return nil, err
+	}
+	err = r.ExtractObj(key, &pv, false)
+	if err != nil {
+		return nil, etcderr.InterpretGetError(err, "persistentVolume", persistentVolumeID)
+	}
+	return &pv, nil
+}
+
+func (r *Registry) CreatePersistentVolume(ctx api.Context, persistentVolume *api.PersistentVolume) error {
+	key, err := makePersistentVoumeKey(ctx, persistentVolume.Name)
+	if err != nil {
+		return err
+	}
+	err = r.CreateObj(key, persistentVolume, 0)
+	return etcderr.InterpretCreateError(err, "persistentVolume", persistentVolume.Name)
+}
+
+func (r *Registry) UpdatePersistentVolume(ctx api.Context, persistentVolume *api.PersistentVolume) error {
+	key, err := makePersistentVoumeKey(ctx, persistentVolume.Name)
+	if err != nil {
+		return err
+	}
+	err = r.SetObj(key, persistentVolume)
+	return etcderr.InterpretUpdateError(err, "persistentVolume", persistentVolume.Name)
+}
+
+func (r *Registry) DeletePersistentVolume(ctx api.Context, persistentVolumeID string) error {
+	key, err := makePersistentVoumeKey(ctx, persistentVolumeID)
+	if err != nil {
+		return err
+	}
+	err = r.Delete(key, false)
+	return etcderr.InterpretDeleteError(err, "persistentVolume", persistentVolumeID)
 }

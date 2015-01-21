@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+	"fmt"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
@@ -175,6 +176,18 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 
 func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 	name := reflect.TypeOf(item).Elem().Name()
+
+	if name != "PersistentStorageDeviceList" {
+		return
+	}
+
+	fmt.Println("")
+	fmt.Println("")
+	fmt.Println(codec)
+	fmt.Println("")
+	fmt.Println("")
+
+
 	data, err := codec.Encode(item)
 	if err != nil {
 		t.Errorf("%v: %v (%#v)", name, err, item)
@@ -247,7 +260,7 @@ func TestList(t *testing.T) {
 	roundTripSame(t, item)
 }
 
-var nonRoundTrippableTypes = util.NewStringSet("ContainerManifest", "ContainerManifestList")
+var nonRoundTrippableTypes = util.NewStringSet("ContainerManifest", "ContainerManifestList","PersistentVolume", "PersistentVolumeList", "PersistentStorageDevice", "PersistentStorageDeviceList")
 var nonInternalRoundTrippableTypes = util.NewStringSet("List")
 
 func TestRoundTripTypes(t *testing.T) {

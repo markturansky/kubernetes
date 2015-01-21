@@ -33,6 +33,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
 	"github.com/coreos/go-etcd/etcd"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 )
 
 func NewTestEtcdRegistry(client tools.EtcdClient) *Registry {
@@ -1788,6 +1789,74 @@ func TestEtcdWatchMinionsNotMatch(t *testing.T) {
 		t.Error("unexpected result from result channel")
 	case <-time.After(time.Millisecond * 100):
 		// expected case
+	}
+}
+
+func TestEtcdGetVolume(t *testing.T) {
+	ctx := api.NewDefaultContext()
+	fakeClient := tools.NewFakeEtcdClient(t)
+	key, _ := makePersistentVoumeKey(ctx, "foo")
+//	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.PersistentVolume{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set(key, runtime.EncodeOrDie(v1beta3.Codec, &api.PersistentVolume{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
+	registry := NewTestEtcdRegistry(fakeClient)
+	persistentVolume, err := registry.GetPersistentVolume(ctx, "foo")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if persistentVolume.Name != "foo" {
+		t.Errorf("Unexpected perisstent volume: %#v", persistentVolume)
+	}
+}
+
+func TestEtcdGetVolumeNotFound(t *testing.T) {
+	ctx := api.NewDefaultContext()
+	fakeClient := tools.NewFakeEtcdClient(t)
+	key, _ := makePersistentVoumeKey(ctx, "foo")
+	fakeClient.Data[key] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: nil,
+		},
+		E: tools.EtcdErrorNotFound,
+	}
+	registry := NewTestEtcdRegistry(fakeClient)
+	_, err := registry.GetPersistentVolume(ctx, "foo")
+	if !errors.IsNotFound(err) {
+		t.Errorf("Unexpected error returned: %#v", err)
+	}
+}
+
+
+func TestEtcdCreatePersistentVolume(t *testing.T) {
+	ctx := api.NewDefaultContext()
+	fakeClient := tools.NewFakeEtcdClient(t)
+	fakeClient.TestIndex = true
+
+	registry := NewTestEtcdRegistry(fakeClient)
+	registry.EtcdHelper.Codec = v1beta3.Codec
+
+	err := registry.CreatePersistentVolume(ctx, &api.PersistentVolume{
+		ObjectMeta: api.ObjectMeta{
+			Name:      "foo",
+			Namespace: api.NamespaceDefault,
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	key, _ := makePersistentVoumeKey(ctx, "foo")
+	resp, err := fakeClient.Get(key, false, false)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
+	var pv api.PersistentVolume
+
+	err = latest.Codec.DecodeInto([]byte(resp.Node.Value), &pv)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if pv.Name != "foo" {
+		t.Errorf("Unexpected persistent volume: %#v", pv)
 	}
 }
 
