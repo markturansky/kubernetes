@@ -150,6 +150,8 @@ func expandResourceShortcut(resource string) string {
 		"ev":     "events",
 		"limits": "limitRanges",
 		"quota":  "resourceQuotas",
+		"pv":     "persistentVolumes",
+		"psd":    "persistentStorageDevices",
 	}
 	if expanded, ok := shortForms[resource]; ok {
 		return expanded

@@ -223,6 +223,8 @@ var statusColumns = []string{"STATUS"}
 var eventColumns = []string{"TIME", "NAME", "KIND", "SUBOBJECT", "REASON", "SOURCE", "MESSAGE"}
 var limitRangeColumns = []string{"NAME"}
 var resourceQuotaColumns = []string{"NAME"}
+var persistentVolumeColumns = []string{"NAME"}
+var persistentStorageDeviceColumns = []string{"NAME"}
 
 // addDefaultHandlers adds print handlers for default Kubernetes types.
 func (h *HumanReadablePrinter) addDefaultHandlers() {
@@ -241,6 +243,10 @@ func (h *HumanReadablePrinter) addDefaultHandlers() {
 	h.Handler(limitRangeColumns, printLimitRangeList)
 	h.Handler(resourceQuotaColumns, printResourceQuota)
 	h.Handler(resourceQuotaColumns, printResourceQuotaList)
+	h.Handler(persistentStorageDeviceColumns, printPersistentStorageDevice)
+	h.Handler(persistentStorageDeviceColumns, printPersistentStorageDeviceList)
+	h.Handler(persistentVolumeColumns, printPersistentVolume)
+	h.Handler(persistentVolumeColumns, printPersistentVolumeList)
 }
 
 func (h *HumanReadablePrinter) unknown(data []byte, w io.Writer) error {
@@ -379,6 +385,34 @@ func printMinion(minion *api.Node, w io.Writer) error {
 func printMinionList(list *api.NodeList, w io.Writer) error {
 	for _, minion := range list.Items {
 		if err := printMinion(&minion, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printPersistentVolume(persistentvolume *api.PersistentVolume, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\n", persistentvolume.Name)
+	return err
+}
+
+func printPersistentVolumeList(list *api.PersistentVolumeList, w io.Writer) error {
+	for _, pv := range list.Items {
+		if err := printPersistentVolume(&pv, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printPersistentStorageDevice(persistentstoragedevice *api.PersistentStorageDevice, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\n", persistentstoragedevice.Name)
+	return err
+}
+
+func printPersistentStorageDeviceList(list *api.PersistentStorageDeviceList, w io.Writer) error {
+	for _, psd := range list.Items {
+		if err := printPersistentStorageDevice(&psd, w); err != nil {
 			return err
 		}
 	}

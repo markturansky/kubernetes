@@ -196,6 +196,16 @@ func validateGCEPersistentDisk(PD *api.GCEPersistentDisk) errs.ValidationErrorLi
 	return allErrs
 }
 
+func ValidatePersistentVolume(persistentvolume *api.PersistentVolume) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	return allErrs
+}
+
+func ValidatePersistentStorageDevice(persistentstoragedevice *api.PersistentStorageDevice) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	return allErrs
+}
+
 var supportedPortProtocols = util.NewStringSet(string(api.ProtocolTCP), string(api.ProtocolUDP))
 
 func validatePorts(ports []api.Port) errs.ValidationErrorList {

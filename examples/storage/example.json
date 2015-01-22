@@ -1,0 +1,12 @@
+{
+    "id": "a-persistent-storage-device",
+    "kind": "PersistentStorageDevice",
+    "apiVersion": "v1beta1",
+    "spec": {
+        "storageId": "123abc"
+    },
+    "labels": {
+        "name": "gce-pd"
+    }
+}
+    

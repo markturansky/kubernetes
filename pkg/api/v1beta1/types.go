@@ -82,7 +82,7 @@ type Volume struct {
 	Source VolumeSource `json:"source,omitempty" description:"location and type of volume to mount; at most one of HostDir, EmptyDir, GCEPersistentDisk, or GitRepo; default is EmptyDir"`
 }
 
-// VolumeSource represents the source location of a valume to mount.
+// VolumeSource represents the source location of a volume to mount.
 // Only one of its members may be specified.
 type VolumeSource struct {
 	// HostDir represents a pre-existing directory on the host machine that is directly
@@ -98,6 +98,119 @@ type VolumeSource struct {
 	GCEPersistentDisk *GCEPersistentDisk `json:"persistentDisk" description:"GCE disk resource attached to the host machine on demand"`
 	// GitRepo represents a git repository at a particular revision.
 	GitRepo *GitRepo `json:"gitRepo" description:"git repository at a particular revision"`
+
+	AWSElasticBlockStore *AWSElasticBlockStore `json:"elasticBlockStore"`
+
+	NFSMount *NFSMount `json:"nfsMount"`
+
+	// the named PersistentStorage object this VolumeSource wants to expose to a pod
+	// PersistentStorage must be requested and bound to available storage before it can be used
+	PersistentStorageName string `json:"persistentStorageName"`
+}
+
+type PersistentVolume struct {
+	TypeMeta `json:",inline"`
+
+	//Spec defines the storage requested by a pod author
+	Spec PersistentVolumeSpec `json:"spec,omitempty"`
+
+	// Status represents the current information about a storage device.
+	// This data may not be up to date.
+	Status PersistentVolumeStatus `json:"status,omitempty"`
+}
+
+type PersistentVolumeList struct {
+	TypeMeta `json:",inline"`
+	Items    []PersistentVolume `json:"items"`
+}
+
+type PersistentVolumeSpec struct {
+
+	// unique identifier of the storage device relative to the storage provider
+	// ex: an AWS EBS volume ID
+	StorageID string       `json:"storageId,omitempty"`
+	Resources ResourceList `json:"resources,omitempty"`
+	Source    VolumeSource `json:"source,omitempty"`
+}
+
+type PersistentVolumeStatus struct {
+	Phase                      StoragePhase    `json:"phase,omitempty"`
+	PersistentStorageDeviceRef ObjectReference `json:"storageDevice,omitempty"`
+	Resources                  ResourceList    `json:"resources,omitempty"`
+	Source                     VolumeSource    `json:"source,omitempty"`
+}
+
+// PersistentStorageDevice is an actual storage device backed by a provider to be
+// paired with a PersistentVolume request by pod authors
+type PersistentStorageDevice struct {
+	TypeMeta `json:",inline"`
+
+	// Spec defines the storage device
+	Spec PersistentStorageDeviceSpec `json:"spec,omitempty"`
+
+	// Status represents the current information about a storage device.
+	// this data may not be up to date.
+	Status PersistentStorageDeviceStatus `json:"status,omitempty"`
+}
+
+type PersistentStorageDeviceList struct {
+	TypeMeta `json:",inline"`
+	Items    []PersistentStorageDevice `json:"items"`
+}
+
+type PersistentStorageDeviceStatus struct {
+	Phase  StoragePhase `json:"phase,omitempty"`
+	Source VolumeSource `json:"volumeSource,omitempty"`
+
+	// where the storage device backing the persistent volume is currently mounted
+	CurrentMount Mount `json:"currentMount,omitempty"`
+
+	PersistentVolumeRef ObjectReference `json:"persistentVolumeRef,omitempty"`
+}
+
+// a PersistentStorageDeviceSpec describes the common attributes of storage devices
+// and allows a Source for provider-specific attributes
+type PersistentStorageDeviceSpec struct {
+
+	// unique identifier of the storage device relative to the provider
+	// ex: an AWS EBS volume ID
+	StorageID string `json: "storageId"`
+
+	// size, iops, throughput of the storage device
+	Resources ResourceList `json:"resources,omitempty"`
+
+	// Source contains provider-specific information about a storage device
+	Source VolumeSource `json:"source,omitempty"`
+}
+
+type Mount struct {
+	Host        string       `json:"host,omitempty"`
+	HostIP      string       `json:"hostIP,omitempty"`
+	MountedDate util.Time    `json:"mountedDate,omitempty"`
+	Phase       StoragePhase `json:"phase,omitempty"`
+}
+
+type StoragePhase string
+
+const (
+	MountPending StoragePhase = "Pending"
+	Attached     StoragePhase = "Attached"
+	Formatting   StoragePhase = "Formatting"
+	Formatted    StoragePhase = "Formatted"
+	Mounted      StoragePhase = "Mounted"
+	MountFailed  StoragePhase = "Failed"
+	MountDelete  StoragePhase = "Deleted"
+)
+
+type AWSElasticBlockStore struct {
+	// the device's EBS volumeID from AWS
+	VolumeID string `json:"volumeId"`
+}
+
+type NFSMount struct {
+	Server       string `json:"server"`
+	SourcePath   string `json:"sourcePath"`
+	MountOptions string `json:"mountOptions"`
 }
 
 // HostPath represents bare host directory volume.
