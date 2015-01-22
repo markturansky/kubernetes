@@ -916,6 +916,15 @@ func init() {
 			if err := s.Convert(&in.HostPath, &out.HostDir, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.AWSElasticBlockStore, &out.AWSElasticBlockStore, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.NFSMount, &out.NFSMount, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Modes, &out.Modes, 0); err != nil {
+				return err
+			}
 			return nil
 		},
 		func(in *VolumeSource, out *newer.VolumeSource, s conversion.Scope) error {
@@ -931,9 +940,203 @@ func init() {
 			if err := s.Convert(&in.HostDir, &out.HostPath, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.AWSElasticBlockStore, &out.AWSElasticBlockStore, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.NFSMount, &out.NFSMount, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Modes, &out.Modes, 0); err != nil {
+				return err
+			}
 			return nil
 		},
-
+		func(in *PersistentVolume, out *newer.PersistentVolume, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.TypeMeta, &out.ObjectMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *newer.PersistentVolume, out *PersistentVolume, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.ObjectMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *newer.PersistentVolumeList, out *PersistentVolumeList, s conversion.Scope) error {
+			if err := s.Convert(&in.ListMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Items, &out.Items, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *PersistentVolumeList, out *newer.PersistentVolumeList, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.ListMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Items, &out.Items, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *newer.PersistentVolumeSpec, out *PersistentVolumeSpec, s conversion.Scope) error {
+			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.RetentionPolicy, &out.RetentionPolicy, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *PersistentVolumeSpec, out *newer.PersistentVolumeSpec, s conversion.Scope) error {
+			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.RetentionPolicy, &out.RetentionPolicy, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *newer.PersistentVolumeStatus, out *PersistentVolumeStatus, s conversion.Scope) error {
+			if err := s.Convert(&in.Phase, &out.Phase, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.PodRef, &out.PodRef, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.CurrentMounts, &out.CurrentMounts, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.LastMounts, &out.LastMounts, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *PersistentVolumeStatus, out *newer.PersistentVolumeStatus, s conversion.Scope) error {
+			if err := s.Convert(&in.Phase, &out.Phase, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.PodRef, &out.PodRef, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.CurrentMounts, &out.CurrentMounts, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.LastMounts, &out.LastMounts, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *PersistentVolumeController, out *newer.PersistentVolumeController, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.TypeMeta, &out.ObjectMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *newer.PersistentVolumeController, out *PersistentVolumeController, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.ObjectMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *newer.PersistentVolumeControllerList, out *PersistentVolumeControllerList, s conversion.Scope) error {
+			if err := s.Convert(&in.ListMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Items, &out.Items, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *PersistentVolumeControllerList, out *newer.PersistentVolumeControllerList, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.ListMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Items, &out.Items, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *newer.PersistentVolumeControllerSpec, out *PersistentVolumeControllerSpec, s conversion.Scope) error {
+			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.MaxInstances, &out.MaxInstances, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.IncrementBy, &out.IncrementBy, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *PersistentVolumeControllerSpec, out *newer.PersistentVolumeControllerSpec, s conversion.Scope) error {
+			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.MaxInstances, &out.MaxInstances, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.IncrementBy, &out.IncrementBy, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *newer.MountList, out *MountList, s conversion.Scope) error {
+			if err := s.Convert(&in.ListMeta, &out.TypeMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Items, &out.Items, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *MountList, out *newer.MountList, s conversion.Scope) error {
+			if err := s.Convert(&in.TypeMeta, &out.ListMeta, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Items, &out.Items, 0); err != nil {
+				return err
+			}
+			return nil
+		},
 		func(in *newer.PullPolicy, out *PullPolicy, s conversion.Scope) error {
 			switch *in {
 			case newer.PullAlways:

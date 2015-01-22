@@ -224,6 +224,8 @@ var statusColumns = []string{"STATUS"}
 var eventColumns = []string{"TIME", "NAME", "KIND", "SUBOBJECT", "REASON", "SOURCE", "MESSAGE"}
 var limitRangeColumns = []string{"NAME"}
 var resourceQuotaColumns = []string{"NAME"}
+var persistentVolumeColumns = []string{"NAME"}
+var persistentVolumeControllerColumns = []string{"NAME"}
 
 // addDefaultHandlers adds print handlers for default Kubernetes types.
 func (h *HumanReadablePrinter) addDefaultHandlers() {
@@ -243,6 +245,10 @@ func (h *HumanReadablePrinter) addDefaultHandlers() {
 	h.Handler(limitRangeColumns, printLimitRangeList)
 	h.Handler(resourceQuotaColumns, printResourceQuota)
 	h.Handler(resourceQuotaColumns, printResourceQuotaList)
+	h.Handler(persistentVolumeControllerColumns, printPersistentVolumeController)
+	h.Handler(persistentVolumeControllerColumns, printPersistentVolumeControllerList)
+	h.Handler(persistentVolumeColumns, printPersistentVolume)
+	h.Handler(persistentVolumeColumns, printPersistentVolumeList)
 }
 
 func (h *HumanReadablePrinter) unknown(data []byte, w io.Writer) error {
@@ -393,6 +399,34 @@ func printMinion(minion *api.Node, w io.Writer) error {
 func printMinionList(list *api.NodeList, w io.Writer) error {
 	for _, minion := range list.Items {
 		if err := printMinion(&minion, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printPersistentVolume(persistentvolume *api.PersistentVolume, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\n", persistentvolume.Name)
+	return err
+}
+
+func printPersistentVolumeList(list *api.PersistentVolumeList, w io.Writer) error {
+	for _, pv := range list.Items {
+		if err := printPersistentVolume(&pv, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printPersistentVolumeController(persistentvolumecontroller *api.PersistentVolumeController, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\n", persistentvolumecontroller.Name)
+	return err
+}
+
+func printPersistentVolumeControllerList(list *api.PersistentVolumeControllerList, w io.Writer) error {
+	for _, psd := range list.Items {
+		if err := printPersistentVolumeController(&psd, w); err != nil {
 			return err
 		}
 	}

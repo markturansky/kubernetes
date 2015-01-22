@@ -150,6 +150,32 @@ const (
 	TerminationMessagePathDefault string = "/dev/termination-log"
 )
 
+type StoreRetentionPolicy string
+type PersistenceRetentionPolicy string
+
+const (
+	RecycleOnDelete PersistenceRetentionPolicy = "RecycleOnDelete"
+	RetainOnDelete PersistenceRetentionPolicy = "RetainOnDelete"
+	NeverDelete StoreRetentionPolicy = "NeverDelete"
+)
+
+type MountMode byte
+const (
+	ReadWriteOnce MountMode = 1 << iota
+	ReadOnlyMany
+	ReadWriteMany
+)
+
+func (vs *VolumeSource) canMount(mode MountMode) bool {
+	return vs.Modes & mode != 0
+}
+
+type PersistenceRequirements struct {
+	Mode	MountMode `json:"mode,omitempty"`
+	RetentionPolicy	PersistenceRetentionPolicy `json:"retentionPolicy,omitemty`
+	Resources ResourceList `json:resources,omitempty`
+}
+
 // Volume represents a named volume in a pod that may be accessed by any containers in the pod.
 type Volume struct {
 	// Required: This must be a DNS_LABEL.  Each volume in a pod must have
@@ -159,6 +185,9 @@ type Volume struct {
 	// This is optional for now. If not specified, the Volume is implied to be an EmptyDir.
 	// This implied behavior is deprecated and will be removed in a future version.
 	Source VolumeSource `json:"source,omitempty"`
+	// a Volume will specify a VolumeSource or PersistenceRequirements where the latter is bound
+	// to an available PersistentVolume.VolumeSource
+	Persistence PersistenceRequirements `json:"persistence,omitempty`
 }
 
 // VolumeSource represents the source location of a volume to mount.
@@ -173,12 +202,111 @@ type VolumeSource struct {
 	HostPath *HostPath `json:"hostPath"`
 	// EmptyDir represents a temporary directory that shares a pod's lifetime.
 	EmptyDir *EmptyDir `json:"emptyDir"`
+	// GitRepo represents a git repository at a particular revision.
+	GitRepo *GitRepo `json:"gitRepo"`
+
 	// GCEPersistentDisk represents a GCE Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
 	GCEPersistentDisk *GCEPersistentDisk `json:"persistentDisk"`
-	// GitRepo represents a git repository at a particular revision.
-	GitRepo *GitRepo `json:"gitRepo"`
+
+	AWSElasticBlockStore *AWSElasticBlockStore `json:"elasticBlockStore"`
+
+	NFSMount *NFSMount `json:"nfsMount"`
+
+	Modes MountMode `json:modes,omitempty`
 }
+
+type PersistentVolume struct {
+	TypeMeta   `json:",inline"`
+	ObjectMeta `json:"metadata,omitempty"`
+
+	//Spec defines the storage requested by a pod author
+	Spec PersistentVolumeSpec `json:"spec,omitempty"`
+
+	// Status represents the current information about a storage device.
+	// This data may not be up to date.
+	Status PersistentVolumeStatus `json:"status,omitempty"`
+}
+
+type PersistentVolumeList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata,omitempty"`
+	Items    []PersistentVolume `json:"items"`
+}
+
+type PersistentVolumeSpec struct {
+	Source	VolumeSource `json:"source,omitempty"`
+	RetentionPolicy StoreRetentionPolicy `json:"retentionPolicy,omitempty"`
+}
+
+type PersistentVolumeStatus struct {
+	Phase       StoragePhase    `json:"phase,omitempty"`
+	PodRef 		ObjectReference `json:"podRef,omitempty"`
+	CurrentMounts MountList `json:"currentMounts,omitempty"`
+	LastMounts	MountList `json:"lastMounts,omitempty"`
+}
+
+// a PersistentVolumeController manages one type of PersistentVolume
+// paired with a PersistentVolume request by pod authors
+type PersistentVolumeController struct {
+	TypeMeta   `json:",inline"`
+	ObjectMeta `json:"metadata,omitempty"`
+
+	// Spec defines the storage device
+	Spec PersistentVolumeControllerSpec `json:"spec,omitempty"`
+
+	// Status represents the current information about a storage device.
+	// this data may not be up to date.
+	Status PersistentVolumeControllerStatus `json:"status,omitempty"`
+}
+
+type PersistentVolumeControllerList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata,omitempty"`
+	Items    []PersistentVolumeController `json:"items"`
+}
+
+// a PersistentVolumeControllerSpec describes the common attributes of storage devices
+// and allows a Source for provider-specific attributes
+type PersistentVolumeControllerSpec struct {
+
+	// Source contains provider-specific information about a storage device
+	Source VolumeSource `json:"source,omitempty"`
+
+	MaxInstances int `json:"maxInstances,omitempty"`
+	IncrementBy int `json:"incrementBy,omitempty"`
+}
+
+type PersistentVolumeControllerStatus struct {
+	InstanceCount int `json:"instanceCount,omitempty"`
+}
+
+
+
+type Mount struct {
+	Host        string       `json:"host,omitempty"`
+	HostIP      string       `json:"hostIP,omitempty"`
+	MountedDate util.Time    `json:"mountedDate,omitempty"`
+	Phase       StoragePhase `json:"phase,omitempty"`
+}
+
+type MountList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata,omitempty"`
+	Items    []Mount `json:"items"`
+}
+
+type StoragePhase string
+
+const (
+	MountPending StoragePhase = "Pending"
+	Attached     StoragePhase = "Attached"
+	Formatting   StoragePhase = "Formatting"
+	Formatted    StoragePhase = "Formatted"
+	Mounted      StoragePhase = "Mounted"
+	MountFailed  StoragePhase = "Failed"
+	MountDelete  StoragePhase = "Deleted"
+)
 
 // HostPath represents bare host directory volume.
 type HostPath struct {
@@ -217,6 +345,17 @@ type GCEPersistentDisk struct {
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
 	ReadOnly bool `json:"readOnly,omitempty"`
+}
+
+type AWSElasticBlockStore struct {
+	// the device's EBS volumeID from AWS
+	VolumeID string `json:"volumeId"`
+}
+
+type NFSMount struct {
+	Server       string `json:"server"`
+	SourcePath   string `json:"sourcePath"`
+	MountOptions string `json:"mountOptions"`
 }
 
 // GitRepo represents a volume that is pulled from git when the pod is created.
@@ -389,12 +528,16 @@ const (
 	// has not been started. This includes time before being bound to a node, as well as time spent
 	// pulling images onto the host.
 	PodPending PodPhase = "Pending"
+	// PodPendingStorageAttachment means a pod has been scheduled onto a node
+	PodPendingAttachment PodPhase = "PendingAttachment"
 	// PodRunning means the pod has been bound to a node and all of the containers have been started.
 	// At least one container is still running or is in the process of being restarted.
 	PodRunning PodPhase = "Running"
 	// PodSucceeded means that all containers in the pod have voluntarily terminated
 	// with a container exit code of 0, and the system is not going to restart any of these containers.
 	PodSucceeded PodPhase = "Succeeded"
+	// PodAttachmentFailed means that a required stored device failed to attach to the host and the pod cannot continue
+	PodAttachmentFailed = "PodAttachmentFailed"
 	// PodFailed means that all containers in the pod have terminated, and at least one container has
 	// terminated in a failure (exited with a non-zero exit code or was stopped by the system).
 	PodFailed PodPhase = "Failed"

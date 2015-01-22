@@ -51,6 +51,10 @@ func init() {
 		&ResourceQuota{},
 		&ResourceQuotaList{},
 		&ResourceQuotaUsage{},
+		&PersistentVolume{},
+		&PersistentVolumeList{},
+		&PersistentVolumeController{},
+		&PersistentVolumeControllerList{},
 	)
 	// Future names are supported
 	api.Scheme.AddKnownTypeWithName("v1beta2", "Node", &Minion{})
@@ -82,3 +86,7 @@ func (*LimitRangeList) IsAnAPIObject()            {}
 func (*ResourceQuota) IsAnAPIObject()             {}
 func (*ResourceQuotaList) IsAnAPIObject()         {}
 func (*ResourceQuotaUsage) IsAnAPIObject()        {}
+func (*PersistentVolume) IsAnAPIObject()            {}
+func (*PersistentVolumeList) IsAnAPIObject()        {}
+func (*PersistentVolumeController) IsAnAPIObject()     {}
+func (*PersistentVolumeControllerList) IsAnAPIObject() {}
