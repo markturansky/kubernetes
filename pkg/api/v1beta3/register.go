@@ -50,6 +50,10 @@ func init() {
 		&List{},
 		&LimitRange{},
 		&LimitRangeList{},
+		&PersistentVolume{},
+		&PersistentVolumeList{},
+		&PersistentStorageDevice{},
+		&PersistentStorageDeviceList{},
 	)
 	// Legacy names are supported
 	api.Scheme.AddKnownTypeWithName("v1beta3", "Minion", &Node{})
@@ -58,27 +62,31 @@ func init() {
 	api.Scheme.AddKnownTypeWithName("v1beta3", "ServerOpList", &OperationList{})
 }
 
-func (*Pod) IsAnAPIObject()                       {}
-func (*PodList) IsAnAPIObject()                   {}
-func (*PodStatusResult) IsAnAPIObject()           {}
-func (*PodTemplate) IsAnAPIObject()               {}
-func (*PodTemplateList) IsAnAPIObject()           {}
-func (*BoundPod) IsAnAPIObject()                  {}
-func (*BoundPods) IsAnAPIObject()                 {}
-func (*ReplicationController) IsAnAPIObject()     {}
-func (*ReplicationControllerList) IsAnAPIObject() {}
-func (*Service) IsAnAPIObject()                   {}
-func (*ServiceList) IsAnAPIObject()               {}
-func (*Endpoints) IsAnAPIObject()                 {}
-func (*EndpointsList) IsAnAPIObject()             {}
-func (*Node) IsAnAPIObject()                      {}
-func (*NodeList) IsAnAPIObject()                  {}
-func (*Binding) IsAnAPIObject()                   {}
-func (*Status) IsAnAPIObject()                    {}
-func (*Operation) IsAnAPIObject()                 {}
-func (*OperationList) IsAnAPIObject()             {}
-func (*Event) IsAnAPIObject()                     {}
-func (*EventList) IsAnAPIObject()                 {}
-func (*List) IsAnAPIObject()                      {}
-func (*LimitRange) IsAnAPIObject()                {}
-func (*LimitRangeList) IsAnAPIObject()            {}
+func (*Pod) IsAnAPIObject()                         {}
+func (*PodList) IsAnAPIObject()                     {}
+func (*PodStatusResult) IsAnAPIObject()             {}
+func (*PodTemplate) IsAnAPIObject()                 {}
+func (*PodTemplateList) IsAnAPIObject()             {}
+func (*BoundPod) IsAnAPIObject()                    {}
+func (*BoundPods) IsAnAPIObject()                   {}
+func (*ReplicationController) IsAnAPIObject()       {}
+func (*ReplicationControllerList) IsAnAPIObject()   {}
+func (*Service) IsAnAPIObject()                     {}
+func (*ServiceList) IsAnAPIObject()                 {}
+func (*Endpoints) IsAnAPIObject()                   {}
+func (*EndpointsList) IsAnAPIObject()               {}
+func (*Node) IsAnAPIObject()                        {}
+func (*NodeList) IsAnAPIObject()                    {}
+func (*Binding) IsAnAPIObject()                     {}
+func (*Status) IsAnAPIObject()                      {}
+func (*Operation) IsAnAPIObject()                   {}
+func (*OperationList) IsAnAPIObject()               {}
+func (*Event) IsAnAPIObject()                       {}
+func (*EventList) IsAnAPIObject()                   {}
+func (*List) IsAnAPIObject()                        {}
+func (*LimitRange) IsAnAPIObject()                  {}
+func (*LimitRangeList) IsAnAPIObject()              {}
+func (*PersistentVolume) IsAnAPIObject()            {}
+func (*PersistentVolumeList) IsAnAPIObject()        {}
+func (*PersistentStorageDevice) IsAnAPIObject()     {}
+func (*PersistentStorageDeviceList) IsAnAPIObject() {}

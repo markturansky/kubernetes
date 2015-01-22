@@ -49,6 +49,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/limitrange"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/minion"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/persistentstoragedevice"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/persistentvolume"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -56,7 +58,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
 )
@@ -103,17 +105,19 @@ type Config struct {
 // Master contains state for a Kubernetes cluster master/api server.
 type Master struct {
 	// "Inputs", Copied from Config
-	podRegistry        pod.Registry
-	controllerRegistry controller.Registry
-	serviceRegistry    service.Registry
-	endpointRegistry   endpoint.Registry
-	minionRegistry     minion.Registry
-	bindingRegistry    binding.Registry
-	eventRegistry      generic.Registry
-	limitRangeRegistry generic.Registry
-	storage            map[string]apiserver.RESTStorage
-	client             *client.Client
-	portalNet          *net.IPNet
+	podRegistry                     pod.Registry
+	controllerRegistry              controller.Registry
+	serviceRegistry                 service.Registry
+	endpointRegistry                endpoint.Registry
+	minionRegistry                  minion.Registry
+	bindingRegistry                 binding.Registry
+	eventRegistry                   generic.Registry
+	limitRangeRegistry              generic.Registry
+	persistentVolumeRegistry        generic.Registry
+	persistentStorageDeviceRegistry generic.Registry
+	storage                         map[string]apiserver.RESTStorage
+	client                          *client.Client
+	portalNet                       *net.IPNet
 
 	mux                   apiserver.Mux
 	muxHelper             *apiserver.MuxHelper
@@ -243,14 +247,16 @@ func New(c *Config) *Master {
 	}
 
 	m := &Master{
-		podRegistry:           etcd.NewRegistry(c.EtcdHelper, boundPodFactory),
-		controllerRegistry:    etcd.NewRegistry(c.EtcdHelper, nil),
-		serviceRegistry:       serviceRegistry,
-		endpointRegistry:      etcd.NewRegistry(c.EtcdHelper, nil),
-		bindingRegistry:       etcd.NewRegistry(c.EtcdHelper, boundPodFactory),
-		eventRegistry:         event.NewEtcdRegistry(c.EtcdHelper, uint64(c.EventTTL.Seconds())),
-		minionRegistry:        minionRegistry,
-		limitRangeRegistry:    limitrange.NewEtcdRegistry(c.EtcdHelper),
+		podRegistry:                     etcd.NewRegistry(c.EtcdHelper, boundPodFactory),
+		controllerRegistry:              etcd.NewRegistry(c.EtcdHelper, nil),
+		serviceRegistry:                 serviceRegistry,
+		endpointRegistry:                etcd.NewRegistry(c.EtcdHelper, nil),
+		bindingRegistry:                 etcd.NewRegistry(c.EtcdHelper, boundPodFactory),
+		eventRegistry:                   event.NewEtcdRegistry(c.EtcdHelper, uint64(c.EventTTL.Seconds())),
+		minionRegistry:                  minionRegistry,
+		limitRangeRegistry:              limitrange.NewEtcdRegistry(c.EtcdHelper),
+		persistentVolumeRegistry:        persistentvolume.NewEtcdRegistry(c.EtcdHelper),
+		persistentStorageDeviceRegistry: persistentstoragedevice.NewEtcdRegistry(c.EtcdHelper),
 		client:                c.Client,
 		portalNet:             c.PortalNet,
 		rootWebService:        new(restful.WebService),
