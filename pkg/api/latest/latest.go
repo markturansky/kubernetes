@@ -124,6 +124,8 @@ func init() {
 	kindToRootScope := map[string]bool{
 		"Node":   true,
 		"Minion": true,
+		"PersistentVolume" : true,
+		"PersistentVolumeController" : true,
 	}
 
 	// enumerate all supported versions, get the kinds, and register with the mapper how to address our resources

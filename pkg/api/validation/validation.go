@@ -276,6 +276,19 @@ func validateGCEPersistentDisk(PD *api.GCEPersistentDisk) errs.ValidationErrorLi
 	return allErrs
 }
 
+func ValidatePersistentVolume(persistentvolume *api.PersistentVolume) errs.ValidationErrorList {
+	allErrs := ValidateObjectMeta(&persistentvolume.ObjectMeta, false,
+		func(name string, prefix bool) (bool, string) {
+			return util.IsDNS1123Label(name), name
+		})
+	return allErrs
+}
+
+func ValidatePersistentVolumeController(persistentvolumecontroller *api.PersistentVolumeController) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	return allErrs
+}
+
 var supportedPortProtocols = util.NewStringSet(string(api.ProtocolTCP), string(api.ProtocolUDP))
 
 func validatePorts(ports []api.Port) errs.ValidationErrorList {

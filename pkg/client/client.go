@@ -40,6 +40,8 @@ type Interface interface {
 	LimitRangesNamespacer
 	ResourceQuotasNamespacer
 	ResourceQuotaUsagesNamespacer
+	PersistentVolumesNamespacer
+	PersistentVolumeControllersNamespacer
 }
 
 func (c *Client) ReplicationControllers(namespace string) ReplicationControllerInterface {
@@ -65,7 +67,6 @@ func (c *Client) Pods(namespace string) PodInterface {
 func (c *Client) Services(namespace string) ServiceInterface {
 	return newServices(c, namespace)
 }
-
 func (c *Client) LimitRanges(namespace string) LimitRangeInterface {
 	return newLimitRanges(c, namespace)
 }
@@ -76,6 +77,14 @@ func (c *Client) ResourceQuotas(namespace string) ResourceQuotaInterface {
 
 func (c *Client) ResourceQuotaUsages(namespace string) ResourceQuotaUsageInterface {
 	return newResourceQuotaUsages(c, namespace)
+}
+
+func (c *Client) PersistentVolumes(namespace string) PersistentVolumeInterface {
+	return newPersistentVolumes(c, namespace)
+}
+
+func (c *Client) PersistentVolumeControllers(namespace string) PersistentVolumeControllerInterface {
+	return newPersistentVolumeControllers(c, namespace)
 }
 
 // VersionInterface has a method to retrieve the server version.
