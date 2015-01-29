@@ -369,6 +369,8 @@ func (m *Master) init(c *Config) {
 		"limitRanges":         limitrange.NewREST(m.limitRangeRegistry),
 		"resourceQuotas":      resourcequota.NewREST(m.resourceQuotaRegistry),
 		"resourceQuotaUsages": resourcequotausage.NewREST(m.resourceQuotaRegistry),
+		"persistentVolumes": persistentvolume.NewREST(m.persistentVolumeRegistry),
+		"persistentStorageDevices": persistentstoragedevice.NewREST(m.persistentStorageDeviceRegistry),
 	}
 
 	apiVersions := []string{"v1beta1", "v1beta2"}
