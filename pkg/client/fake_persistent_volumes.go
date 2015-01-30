@@ -30,7 +30,7 @@ type FakePersistentVolumes struct {
 }
 
 func (c *FakePersistentVolumes) List(selector labels.Selector) (*api.PersistentVolumeList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-persistentvolumes"})
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-persistentVolumes"})
 	return api.Scheme.CopyOrDie(&c.Fake.PersistentVolumesList).(*api.PersistentVolumeList), nil
 }
 
@@ -55,5 +55,6 @@ func (c *FakePersistentVolumes) Update(persistentvolume *api.PersistentVolume) (
 }
 
 func (c *FakePersistentVolumes) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
-	return nil, nil
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-persistentVolumes", Value: resourceVersion})
+	return c.Fake.Watch, c.Fake.Err
 }

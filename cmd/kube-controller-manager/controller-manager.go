@@ -33,6 +33,7 @@ import (
 	nodeControllerPkg "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/controller"
 	replicationControllerPkg "github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/healthz"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/persistentstorage"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -111,6 +112,9 @@ func main() {
 	}
 	nodeController := nodeControllerPkg.NewNodeController(cloud, *minionRegexp, machineList, nodeResources, kubeClient)
 	nodeController.Run(*nodeSyncPeriod)
+
+	persistentVolumeBindingController := persistentstorage.NewPersistentVolumeBindingController(kubeClient)
+	persistentVolumeBindingController.Run(1 * time.Second)
 
 	select {}
 }
