@@ -12,6 +12,7 @@ This document defines persistent, cluster-scoped storage for applications requir
 * Ensure developers can rely on storage being available, without being closely bound to a particular disk, server, network topology, or storage technology.
 * Implement storage for GCE, AWS, and NFS
 * Provide working examples for each type of storage and cloud provider.
+* Use or don't impede [ #2598 - Tim Hockin's volumes framework](https://github.com/GoogleCloudPlatform/kubernetes/pull/2598)
 
 ## Constraints and Assumptions
 
@@ -84,6 +85,14 @@ Iaas credentials are restricted to Master running `CloudStorageAttachingControll
 6.    Kubelet mounts the filesystem and exposes the volume to the pod.  
 	1.  A wait loop is entered if the pod is still 'PendingAttachment'
 	2.  Wait loop is X seconds and exits after Y attempts.   Fire event for failed attachment.
+7. Pod author deletes their volume
+	1.  Storage no longer required, pod author deletes their pod and then deletes their `PersistentVolume`
+	2.  The `PersistentStorageDevice` backing the volume has a phase change to StoragePhase.Deleted (or perhaps StoragePhase.PendingReclaimation)
+	3.  The device remains unavailable to new storage requests
+	4.  Admin manually formats the devices (or performs other maintenance tasks).
+	5.  The device can be added back to the pool via Phase change and unbinding its reference to the PersistentVolume or we can enforce deletion of the device and creation of a new one.
+	6.  `PersistentStorageDeviceManager`  can automate much of this process in the future.
+
 
 
 ## Questions
