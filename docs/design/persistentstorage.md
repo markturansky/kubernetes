@@ -14,6 +14,11 @@ This document defines persistent, cluster-scoped storage for applications requir
 * Provide working examples for each type of storage and cloud provider.
 * Use or don't impede [ #2598 - Tim Hockin's volumes framework](https://github.com/GoogleCloudPlatform/kubernetes/pull/2598)
 
+## Future enhancements
+
+Currently, admins will manually create storage devices and make them available to the cluster.  These tasks will become automated.
+A follow-up proposal to this persistent storage will be a `PersistentStorageDeviceManager` that keeps various types of storage available at certain minimum levels.
+
 ## Constraints and Assumptions
 
 * Kubernetes makes no guarantees at runtime that the storage devices exist or are available.  High availability is left to the storage provider.
