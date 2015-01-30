@@ -56,8 +56,6 @@ func (c *PersistentVolumeBindingController) Run(period time.Duration) {
 
 func (c *PersistentVolumeBindingController) watchPersistentVolumes(resourceVersion *string) {
 
-//	fmt.Printf("HERE WE GO FUCKERS %+v\n\n", watching)
-
 	watching, err := c.kubeClient.PersistentVolumes(api.NamespaceAll).Watch(
 		labels.Everything(),
 		labels.Everything(),
@@ -70,8 +68,6 @@ func (c *PersistentVolumeBindingController) watchPersistentVolumes(resourceVersi
 		return
 	}
 
-	fmt.Println("HERE WE GO FUCKERS")
-	fmt.Printf("HERE WE GO FUCKERS %+v\n\n", watching)
 	for {
 		select {
 		case <-c.syncTime:
