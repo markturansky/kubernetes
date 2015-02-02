@@ -53,6 +53,10 @@ func init() {
 		&ResourceQuotaUsage{},
 		&Namespace{},
 		&NamespaceList{},
+		&PersistentVolume{},
+		&PersistentVolumeList{},
+		&PersistentVolumeClaim{},
+		&PersistentVolumeClaimList{},
 	)
 	// Future names are supported
 	api.Scheme.AddKnownTypeWithName("v1beta1", "Node", &Minion{})
@@ -86,3 +90,7 @@ func (*ResourceQuotaList) IsAnAPIObject()         {}
 func (*ResourceQuotaUsage) IsAnAPIObject()        {}
 func (*Namespace) IsAnAPIObject()                 {}
 func (*NamespaceList) IsAnAPIObject()             {}
+func (*PersistentVolume) IsAnAPIObject()            {}
+func (*PersistentVolumeList) IsAnAPIObject()        {}
+func (*PersistentVolumeClaim) IsAnAPIObject()     {}
+func (*PersistentVolumeClaimList) IsAnAPIObject() {}

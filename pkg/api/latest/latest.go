@@ -125,6 +125,8 @@ func init() {
 		"Node":      true,
 		"Minion":    true,
 		"Namespace": true,
+		"PersistentVolume" : true,
+		"PersistentVolumeClaim" : true,
 	}
 
 	// enumerate all supported versions, get the kinds, and register with the mapper how to address our resources

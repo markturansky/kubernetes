@@ -225,6 +225,8 @@ var eventColumns = []string{"FIRSTSEEN", "LASTSEEN", "COUNT", "NAME", "KIND", "S
 var limitRangeColumns = []string{"NAME"}
 var resourceQuotaColumns = []string{"NAME"}
 var namespaceColumns = []string{"NAME", "LABELS"}
+var persistentVolumeColumns = []string{"NAME"}
+var persistentVolumeClaimColumns = []string{"NAME"}
 
 // addDefaultHandlers adds print handlers for default Kubernetes types.
 func (h *HumanReadablePrinter) addDefaultHandlers() {
@@ -246,6 +248,10 @@ func (h *HumanReadablePrinter) addDefaultHandlers() {
 	h.Handler(resourceQuotaColumns, printResourceQuotaList)
 	h.Handler(namespaceColumns, printNamespace)
 	h.Handler(namespaceColumns, printNamespaceList)
+	h.Handler(persistentVolumeClaimColumns, printPersistentVolumeClaim)
+	h.Handler(persistentVolumeClaimColumns, printPersistentVolumeClaimList)
+	h.Handler(persistentVolumeColumns, printPersistentVolume)
+	h.Handler(persistentVolumeColumns, printPersistentVolumeList)
 }
 
 func (h *HumanReadablePrinter) unknown(data []byte, w io.Writer) error {
@@ -410,6 +416,34 @@ func printMinion(minion *api.Node, w io.Writer) error {
 func printMinionList(list *api.NodeList, w io.Writer) error {
 	for _, minion := range list.Items {
 		if err := printMinion(&minion, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printPersistentVolume(persistentvolume *api.PersistentVolume, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\n", persistentvolume.Name)
+	return err
+}
+
+func printPersistentVolumeList(list *api.PersistentVolumeList, w io.Writer) error {
+	for _, pv := range list.Items {
+		if err := printPersistentVolume(&pv, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printPersistentVolumeClaim(persistentvolumeclaim *api.PersistentVolumeClaim, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\n", persistentvolumeclaim.Name)
+	return err
+}
+
+func printPersistentVolumeClaimList(list *api.PersistentVolumeClaimList, w io.Writer) error {
+	for _, psd := range list.Items {
+		if err := printPersistentVolumeClaim(&psd, w); err != nil {
 			return err
 		}
 	}

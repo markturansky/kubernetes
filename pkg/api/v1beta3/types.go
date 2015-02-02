@@ -197,7 +197,112 @@ type VolumeSource struct {
 	GCEPersistentDisk *GCEPersistentDisk `json:"gcePersistentDisk"`
 	// GitRepo represents a git repository at a particular revision.
 	GitRepo *GitRepo `json:"gitRepo"`
+
+	AWSElasticBlockStore *AWSElasticBlockStore `json:elasticBlockStore`
+
+	NFSMount *NFSMount `json:nfsMount`
+
+	PersistentVolumeClaim *PersistentVolumeClaimAttachment `json:"persistentVolumeClaim,omitempty"`
 }
+
+type PersistentVolume struct {
+	TypeMeta   `json:",inline"`
+	ObjectMeta `json:"metadata,omitempty"`
+
+	//Spec defines a persistent volume owned by the cluster
+	Spec PersistentVolumeSpec `json:"spec,omitempty"`
+
+	// Status represents the current information about persistent volume.
+	Status PersistentVolumeStatus `json:"status,omitempty"`
+}
+
+type PersistentVolumeSpec struct {
+	Capacity ResourceList `json:"capacity,omitempty`
+	Source	VolumeSource `json:"source,omitempty"`
+}
+
+type PersistentVolumeStatus struct {
+	Phase       StoragePhase    `json:"phase,omitempty"`
+}
+
+type PersistentVolumeList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata,omitempty"`
+	Items    []PersistentVolume `json:"items"`
+}
+
+// a PersistentVolumeClaim is a user's request for and claim to a persistent volume
+type PersistentVolumeClaim struct {
+	TypeMeta   `json:",inline"`
+	ObjectMeta `json:"metadata,omitempty"`
+
+	// Spec defines the volume
+	Spec PersistentVolumeClaimSpec `json:"spec,omitempty"`
+
+	// Status represents the current information about a persistent volume.
+	// this data may not be up to date.
+	Status PersistentVolumeClaimStatus `json:"status,omitempty"`
+}
+
+type PersistentVolumeClaimList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata,omitempty"`
+	Items    []PersistentVolumeClaim `json:"items"`
+}
+
+// a PersistentVolumeClaimSpec describes the common attributes of storage devices
+// and allows a Source for provider-specific attributes
+type PersistentVolumeClaimSpec struct {
+	// Contains the types of access modes desired
+	AccessModes []AccessModeType
+	Resources ResourceList
+	PersistentVolumeSelector map[string]string `json:"selector,omitempty"`
+}
+
+type ReadWriteOnce struct{}
+type ReadOnlyMany struct {}
+type ReadWriteMany struct{}
+
+type AccessModeType struct {
+	// Any of these access modes may be be specified.
+	// If none are specified, the default is ReadWriteOnce
+	ReadWriteOnce *ReadWriteOnce `json:"always,omitempty"`
+	ReadOnlyMany  *ReadOnlyMany  `json:"onFailure,omitempty"`
+	ReadWriteMany *ReadWriteMany `json:"never,omitempty"`
+}
+
+type PersistentVolumeClaimStatus struct {
+	Phase StoragePhase `json:"phase,omitempty"`
+}
+
+type StoragePhase string
+
+const (
+	MountPending StoragePhase = "Pending"
+	Attached     StoragePhase = "Attached"
+	Formatting   StoragePhase = "Formatting"
+	Formatted    StoragePhase = "Formatted"
+	Mounted      StoragePhase = "Mounted"
+	MountFailed  StoragePhase = "Failed"
+	MountDelete  StoragePhase = "Deleted"
+)
+
+type PersistentVolumeClaimAttachment struct {
+	AccessMode AccessModeType `json:accessMode,omitempty`
+	PersistentVolumeClaimReference *ObjectReference `json:persistentVolumeClaim,omitempty`
+}
+
+type AWSElasticBlockStore struct {
+	// the device's EBS volumeID from AWS
+	VolumeID string `json:"volumeId"`
+}
+
+type NFSMount struct {
+	Server       string `json:"server"`
+	SourcePath   string `json:"sourcePath"`
+	MountOptions string `json:"mountOptions"`
+}
+
 
 // HostPath represents bare host directory volume.
 type HostPath struct {

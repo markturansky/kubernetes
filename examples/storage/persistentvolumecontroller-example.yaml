@@ -1,0 +1,10 @@
+id: mypsc00001
+kind: PersistentVolumeClaim
+apiVersion: v1beta1
+spec:
+  source:
+    persistentDisk:
+      # This GCE PD must already exist and be formatted ext4
+    pdName: abc123
+    fsType: ext4
+  retentionPolicy: NeverDelete

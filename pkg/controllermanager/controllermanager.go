@@ -40,6 +40,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/petco"
 )
 
 // CMServer is the mail context object for the controller manager.
@@ -56,6 +57,7 @@ type CMServer struct {
 	MachineList             util.StringList
 	SyncNodeList            bool
 	PodEvictionTimeout      time.Duration
+	PersistentVolumeSyncPeriod time.Duration
 
 	// TODO: Discover these by pinging the host machines, and rip out these params.
 	NodeMilliCPU int64
@@ -76,6 +78,7 @@ func NewCMServer() *CMServer {
 		NodeMilliCPU:            1000,
 		NodeMemory:              resource.MustParse("3Gi"),
 		SyncNodeList:            true,
+		PersistentVolumeSyncPeriod: 1 * time.Second,
 		KubeletConfig: client.KubeletConfig{
 			Port:        ports.KubeletPort,
 			EnableHttps: false,
@@ -179,6 +182,9 @@ func (s *CMServer) Run(_ []string) error {
 
 	resourceQuotaManager := resourcequota.NewResourceQuotaManager(kubeClient)
 	resourceQuotaManager.Run(s.ResourceQuotaSyncPeriod)
+
+	persistentVolumeController := petco.NewPersistentVolumeController(kubeClient)
+	persistentVolumeController.Run(s.PersistentVolumeSyncPeriod)
 
 	select {}
 	return nil
