@@ -199,6 +199,114 @@ type VolumeSource struct {
 	GitRepo *GitRepo `json:"gitRepo"`
 	// Secret represents a secret that should populate this volume.
 	Secret *SecretSource `json:"secret"`
+
+	AWSElasticBlockStore *AWSElasticBlockStore `json:elasticBlockStore`
+
+	NFSMount *NFSMount `json:nfsMount`
+
+	PersistentVolumeClaimAttachment *PersistentVolumeClaimAttachment `json:"persistentVolumeClaim,omitempty"`
+}
+
+type PersistentVolume struct {
+	TypeMeta   `json:",inline"`
+	ObjectMeta `json:"metadata,omitempty"`
+
+	//Spec defines a persistent volume owned by the cluster
+	Spec PersistentVolumeSpec `json:"spec,omitempty"`
+
+	// Status represents the current information about persistent volume.
+	Status PersistentVolumeStatus `json:"status,omitempty"`
+}
+
+type PersistentVolumeSpec struct {
+	Capacity ResourceList `json:"capacity,omitempty`
+	Source   VolumeSource `json:"source,omitempty"`
+}
+
+type PersistentVolumeStatus struct {
+	Phase                          StoragePhase     `json:"phase,omitempty"`
+	PersistentVolumeClaimReference *ObjectReference `json:persistentVolumeClaimReference,omitempty`
+}
+
+type PersistentVolumeList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata,omitempty"`
+	Items    []PersistentVolume `json:"items"`
+}
+
+// a PersistentVolumeClaim is a user's request for and claim to a persistent volume
+type PersistentVolumeClaim struct {
+	TypeMeta   `json:",inline"`
+	ObjectMeta `json:"metadata,omitempty"`
+
+	// Spec defines the volume
+	Spec PersistentVolumeClaimSpec `json:"spec,omitempty"`
+
+	// Status represents the current information about a persistent volume.
+	// this data may not be up to date.
+	Status PersistentVolumeClaimStatus `json:"status,omitempty"`
+}
+
+type PersistentVolumeClaimList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata,omitempty"`
+	Items    []PersistentVolumeClaim `json:"items"`
+}
+
+// a PersistentVolumeClaimSpec describes the common attributes of storage devices
+// and allows a Source for provider-specific attributes
+type PersistentVolumeClaimSpec struct {
+	// Contains the types of access modes desired
+	AccessModes              AccessModeType    `json:"accessModes,omitempty"`
+	Resources                ResourceList      `json:"resources,omitempty"`
+	PersistentVolumeSelector map[string]string `json:"selector,omitempty"`
+}
+
+type PersistentVolumeClaimStatus struct {
+	Phase                     StoragePhase `json:"phase,omitempty"`
+	AccessModes               AccessModeType
+	Resources                 ResourceList
+	PersistentVolumeReference *ObjectReference
+}
+
+type ReadWriteOnce struct{}
+type ReadOnlyMany struct{}
+type ReadWriteMany struct{}
+
+type AccessModeType struct {
+	// Any of these access modes may be be specified.
+	// If none are specified, the default is ReadWriteOnce
+	ReadWriteOnce *ReadWriteOnce `json:"rwo,omitempty"`
+	ReadOnlyMany  *ReadOnlyMany  `json:"rox,omitempty"`
+	ReadWriteMany *ReadWriteMany `json:"rwx,omitempty"`
+}
+
+type StoragePhase string
+
+const (
+	MountPending StoragePhase = "Pending"
+	Attached     StoragePhase = "Attached"
+	Formatting   StoragePhase = "Formatting"
+	Formatted    StoragePhase = "Formatted"
+	Mounted      StoragePhase = "Mounted"
+	MountFailed  StoragePhase = "Failed"
+	MountDelete  StoragePhase = "Deleted"
+)
+
+type PersistentVolumeClaimAttachment struct {
+	AccessMode                     AccessModeType   `json:accessMode,omitempty`
+	PersistentVolumeClaimReference *ObjectReference `json:persistentVolumeClaimReference,omitempty`
+}
+
+type AWSElasticBlockStore struct {
+	// the device's EBS volumeID from AWS
+	VolumeID string `json:"volumeId"`
+}
+
+type NFSMount struct {
+	Server       string `json:"server"`
+	SourcePath   string `json:"sourcePath"`
+	MountOptions string `json:"mountOptions"`
 }
 
 // HostPath represents bare host directory volume.
@@ -848,7 +956,10 @@ const (
 	// CPU, in cores. (500m = .5 cores)
 	ResourceCPU ResourceName = "cpu"
 	// Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-	ResourceMemory ResourceName = "memory"
+	ResourceMemory  ResourceName = "memory"
+	ResourceSize    ResourceName = "size"
+	ResourceIOPS    ResourceName = "iops"
+	ResourceThrough ResourceName = "throughput"
 )
 
 // ResourceList is a set of (resource name, quantity) pairs.

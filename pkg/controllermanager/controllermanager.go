@@ -34,6 +34,7 @@ import (
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/healthz"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/hyperkube"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/petco"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -44,18 +45,19 @@ import (
 
 // CMServer is the mail context object for the controller manager.
 type CMServer struct {
-	Port                    int
-	Address                 util.IP
-	ClientConfig            client.Config
-	CloudProvider           string
-	CloudConfigFile         string
-	MinionRegexp            string
-	NodeSyncPeriod          time.Duration
-	ResourceQuotaSyncPeriod time.Duration
-	RegisterRetryCount      int
-	MachineList             util.StringList
-	SyncNodeList            bool
-	PodEvictionTimeout      time.Duration
+	Port                       int
+	Address                    util.IP
+	ClientConfig               client.Config
+	CloudProvider              string
+	CloudConfigFile            string
+	MinionRegexp               string
+	NodeSyncPeriod             time.Duration
+	ResourceQuotaSyncPeriod    time.Duration
+	RegisterRetryCount         int
+	MachineList                util.StringList
+	SyncNodeList               bool
+	PodEvictionTimeout         time.Duration
+	PersistentVolumeSyncPeriod time.Duration
 
 	// TODO: Discover these by pinging the host machines, and rip out these params.
 	NodeMilliCPU int64
@@ -67,15 +69,16 @@ type CMServer struct {
 // NewCMServer creates a new CMServer with a default config.
 func NewCMServer() *CMServer {
 	s := CMServer{
-		Port:                    ports.ControllerManagerPort,
-		Address:                 util.IP(net.ParseIP("127.0.0.1")),
-		NodeSyncPeriod:          10 * time.Second,
-		ResourceQuotaSyncPeriod: 10 * time.Second,
-		RegisterRetryCount:      10,
-		PodEvictionTimeout:      5 * time.Minute,
-		NodeMilliCPU:            1000,
-		NodeMemory:              resource.MustParse("3Gi"),
-		SyncNodeList:            true,
+		Port:                       ports.ControllerManagerPort,
+		Address:                    util.IP(net.ParseIP("127.0.0.1")),
+		NodeSyncPeriod:             10 * time.Second,
+		ResourceQuotaSyncPeriod:    10 * time.Second,
+		RegisterRetryCount:         10,
+		PodEvictionTimeout:         5 * time.Minute,
+		NodeMilliCPU:               1000,
+		NodeMemory:                 resource.MustParse("3Gi"),
+		SyncNodeList:               true,
+		PersistentVolumeSyncPeriod: 1 * time.Second,
 		KubeletConfig: client.KubeletConfig{
 			Port:        ports.KubeletPort,
 			EnableHttps: false,
@@ -179,6 +182,9 @@ func (s *CMServer) Run(_ []string) error {
 
 	resourceQuotaManager := resourcequota.NewResourceQuotaManager(kubeClient)
 	resourceQuotaManager.Run(s.ResourceQuotaSyncPeriod)
+
+	persistentVolumeController := petco.NewPersistentVolumeController(kubeClient)
+	persistentVolumeController.Run(s.PersistentVolumeSyncPeriod)
 
 	select {}
 	return nil

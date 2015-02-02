@@ -1,5 +1,3 @@
-// +build windows
-
 /*
 Copyright 2014 Google Inc. All rights reserved.
 
@@ -16,13 +14,4 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package gce_pd
-
-import (
-	"fmt"
-)
-
-// Dummy implementation for Windows
-func isMountPoint(file string) (bool, error) {
-	return false, fmt.Errorf("unimplemented")
-}
+package persistentvolume
