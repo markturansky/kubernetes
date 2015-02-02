@@ -478,7 +478,7 @@ const (
 	// pulling images onto the host.
 	PodPending PodPhase = "Pending"
 	// PodPendingStorageAttachment means a pod has been scheduled onto a node
-	PodPendingAttachment = "PendingAttachment"
+	PodPendingAttachment PodPhase = "PendingAttachment"
 	// PodRunning means the pod has been bound to a node and all of the containers have been started.
 	// At least one container is still running or is in the process of being restarted.
 	PodRunning PodPhase = "Running"
@@ -817,7 +817,7 @@ type EndpointsList struct {
 // NodeSpec describes the attributes that a node is created with.
 type NodeSpec struct {
 	// Capacity represents the available resources of a node
-	Capacity ResourceList `json:"capacity,omitempty"`
+	Capacity rceLIrceList `json:"capacity,omitempty"`
 }
 
 // NodeStatus is information about the current status of a node.
