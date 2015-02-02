@@ -51,6 +51,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/limitrange"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/minion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/namespace"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/persistentvolumeclaim"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/persistentvolume"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/resourcequota"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/resourcequotausage"
@@ -60,7 +62,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
 )
@@ -124,6 +126,8 @@ type Master struct {
 	limitRangeRegistry    generic.Registry
 	resourceQuotaRegistry resourcequota.Registry
 	namespaceRegistry     generic.Registry
+	persistentVolumeRegistry        generic.Registry
+	persistentVolumeClaimRegistry generic.Registry
 	storage               map[string]apiserver.RESTStorage
 	client                *client.Client
 	portalNet             *net.IPNet
@@ -285,6 +289,8 @@ func New(c *Config) *Master {
 		minionRegistry:        minionRegistry,
 		limitRangeRegistry:    limitrange.NewEtcdRegistry(c.EtcdHelper),
 		resourceQuotaRegistry: resourcequota.NewEtcdRegistry(c.EtcdHelper),
+		persistentVolumeRegistry:        persistentvolume.NewEtcdRegistry(c.EtcdHelper),
+		persistentVolumeClaimRegistry: persistentvolumeclaim.NewEtcdRegistry(c.EtcdHelper),
 		client:                c.Client,
 		portalNet:             c.PortalNet,
 		rootWebService:        new(restful.WebService),
@@ -404,6 +410,8 @@ func (m *Master) init(c *Config) {
 		"resourceQuotas":      resourcequota.NewREST(m.resourceQuotaRegistry),
 		"resourceQuotaUsages": resourcequotausage.NewREST(m.resourceQuotaRegistry),
 		"namespaces":          namespace.NewREST(m.namespaceRegistry),
+		"persistentVolumes": persistentvolume.NewREST(m.persistentVolumeRegistry),
+		"persistentVolumeClaims": persistentvolumeclaim.NewREST(m.persistentVolumeClaimRegistry),
 	}
 
 	apiVersions := []string{"v1beta1", "v1beta2"}
