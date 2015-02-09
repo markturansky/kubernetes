@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package persistentvolumecontroller
+package persistentvolumeclaim
 
 import (
 	"reflect"
@@ -37,8 +37,8 @@ func NewTestREST() (testRegistry, *REST) {
 	return reg, NewREST(reg)
 }
 
-func testDevice(name string, ns string) *api.PersistentVolumeController {
-	return &api.PersistentVolumeController{
+func testDevice(name string, ns string) *api.PersistentVolumeClaim {
+	return &api.PersistentVolumeClaim{
 		ObjectMeta: api.ObjectMeta{
 			Name:      name,
 			Namespace: ns,
@@ -49,7 +49,7 @@ func testDevice(name string, ns string) *api.PersistentVolumeController {
 func TestRESTCreate(t *testing.T) {
 	table := []struct {
 		ctx    api.Context
-		device *api.PersistentVolumeController
+		device *api.PersistentVolumeClaim
 		valid  bool
 	}{
 		{
@@ -136,15 +136,15 @@ func TestRESTList(t *testing.T) {
 		"a-label-key": "some value",
 	}
 
-	reg.ObjectList = &api.PersistentVolumeControllerList{
-		Items: []api.PersistentVolumeController{*deviceA, *deviceB, *deviceC},
+	reg.ObjectList = &api.PersistentVolumeClaimList{
+		Items: []api.PersistentVolumeClaim{*deviceA, *deviceB, *deviceC},
 	}
 	got, err := rest.List(api.NewContext(), labels.Everything(), labels.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
-	expect := &api.PersistentVolumeControllerList{
-		Items: []api.PersistentVolumeController{*deviceA, *deviceB, *deviceC},
+	expect := &api.PersistentVolumeClaimList{
+		Items: []api.PersistentVolumeClaim{*deviceA, *deviceB, *deviceC},
 	}
 	if e, a := expect, got; !reflect.DeepEqual(e, a) {
 		t.Errorf("diff: %s", util.ObjectDiff(e, a))

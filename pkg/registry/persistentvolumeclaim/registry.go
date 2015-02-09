@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package persistentvolumecontroller
+package persistentvolumeclaim
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -29,16 +29,16 @@ type registry struct {
 }
 
 const (
-	NamespacePrefix string = "registry/persistentvolumecontrollers"
+	NamespacePrefix string = "registry/persistentvolumeclaims"
 )
 
-// NewEtcdRegistry returns a registry which will store PersistentVolumeController in the given helper
+// NewEtcdRegistry returns a registry which will store PersistentVolumeClaim in the given helper
 func NewEtcdRegistry(h tools.EtcdHelper) generic.Registry {
 	return registry{
 		Etcd: &etcdgeneric.Etcd{
-			NewFunc:      func() runtime.Object { return &api.PersistentVolumeController{} },
-			NewListFunc:  func() runtime.Object { return &api.PersistentVolumeControllerList{} },
-			EndpointName: "persistentvolumecontrollers",
+			NewFunc:      func() runtime.Object { return &api.PersistentVolumeClaim{} },
+			NewListFunc:  func() runtime.Object { return &api.PersistentVolumeClaimList{} },
+			EndpointName: "persistentvolumeclaims",
 			KeyRootFunc: func(ctx api.Context) string {
 				return etcdgeneric.NamespaceKeyRootFunc(ctx, NamespacePrefix)
 			},

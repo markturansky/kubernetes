@@ -225,7 +225,7 @@ var eventColumns = []string{"TIME", "NAME", "KIND", "SUBOBJECT", "REASON", "SOUR
 var limitRangeColumns = []string{"NAME"}
 var resourceQuotaColumns = []string{"NAME"}
 var persistentVolumeColumns = []string{"NAME"}
-var persistentVolumeControllerColumns = []string{"NAME"}
+var persistentVolumeClaimColumns = []string{"NAME"}
 
 // addDefaultHandlers adds print handlers for default Kubernetes types.
 func (h *HumanReadablePrinter) addDefaultHandlers() {
@@ -245,8 +245,8 @@ func (h *HumanReadablePrinter) addDefaultHandlers() {
 	h.Handler(limitRangeColumns, printLimitRangeList)
 	h.Handler(resourceQuotaColumns, printResourceQuota)
 	h.Handler(resourceQuotaColumns, printResourceQuotaList)
-	h.Handler(persistentVolumeControllerColumns, printPersistentVolumeController)
-	h.Handler(persistentVolumeControllerColumns, printPersistentVolumeControllerList)
+	h.Handler(persistentVolumeClaimColumns, printPersistentVolumeClaim)
+	h.Handler(persistentVolumeClaimColumns, printPersistentVolumeClaimList)
 	h.Handler(persistentVolumeColumns, printPersistentVolume)
 	h.Handler(persistentVolumeColumns, printPersistentVolumeList)
 }
@@ -419,14 +419,14 @@ func printPersistentVolumeList(list *api.PersistentVolumeList, w io.Writer) erro
 	return nil
 }
 
-func printPersistentVolumeController(persistentvolumecontroller *api.PersistentVolumeController, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\n", persistentvolumecontroller.Name)
+func printPersistentVolumeClaim(persistentvolumeclaim *api.PersistentVolumeClaim, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\n", persistentvolumeclaim.Name)
 	return err
 }
 
-func printPersistentVolumeControllerList(list *api.PersistentVolumeControllerList, w io.Writer) error {
+func printPersistentVolumeClaimList(list *api.PersistentVolumeClaimList, w io.Writer) error {
 	for _, psd := range list.Items {
-		if err := printPersistentVolumeController(&psd, w); err != nil {
+		if err := printPersistentVolumeClaim(&psd, w); err != nil {
 			return err
 		}
 	}

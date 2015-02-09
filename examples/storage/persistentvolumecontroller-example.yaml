@@ -1,5 +1,5 @@
 id: mypsc00001
-kind: PersistentVolumeController
+kind: PersistentVolumeClaim
 apiVersion: v1beta1
 spec:
   source:

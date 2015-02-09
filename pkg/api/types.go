@@ -246,29 +246,29 @@ type PersistentVolumeStatus struct {
 	LastMounts	MountList `json:"lastMounts,omitempty"`
 }
 
-// a PersistentVolumeController manages one type of PersistentVolume
+// a PersistentVolumeClaim manages one type of PersistentVolume
 // paired with a PersistentVolume request by pod authors
-type PersistentVolumeController struct {
+type PersistentVolumeClaim struct {
 	TypeMeta   `json:",inline"`
 	ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec defines the storage device
-	Spec PersistentVolumeControllerSpec `json:"spec,omitempty"`
+	Spec PersistentVolumeClaimSpec `json:"spec,omitempty"`
 
 	// Status represents the current information about a storage device.
 	// this data may not be up to date.
-	Status PersistentVolumeControllerStatus `json:"status,omitempty"`
+	Status PersistentVolumeClaimStatus `json:"status,omitempty"`
 }
 
-type PersistentVolumeControllerList struct {
+type PersistentVolumeClaimList struct {
 	TypeMeta `json:",inline"`
 	ListMeta `json:"metadata,omitempty"`
-	Items    []PersistentVolumeController `json:"items"`
+	Items    []PersistentVolumeClaim `json:"items"`
 }
 
-// a PersistentVolumeControllerSpec describes the common attributes of storage devices
+// a PersistentVolumeClaimSpec describes the common attributes of storage devices
 // and allows a Source for provider-specific attributes
-type PersistentVolumeControllerSpec struct {
+type PersistentVolumeClaimSpec struct {
 
 	// Source contains provider-specific information about a storage device
 	Source VolumeSource `json:"source,omitempty"`
@@ -277,7 +277,7 @@ type PersistentVolumeControllerSpec struct {
 	IncrementBy int `json:"incrementBy,omitempty"`
 }
 
-type PersistentVolumeControllerStatus struct {
+type PersistentVolumeClaimStatus struct {
 	InstanceCount int `json:"instanceCount,omitempty"`
 }
 

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package persistentvolumecontroller
+package persistentvolumeclaim
 
 import (
 	"reflect"
@@ -34,19 +34,19 @@ import (
 
 var testTTL uint64 = 60
 
-func NewTestPersistentVolumeControllerEtcdRegistry(t *testing.T) (*tools.FakeEtcdClient, generic.Registry) {
+func NewTestPersistentVolumeClaimEtcdRegistry(t *testing.T) (*tools.FakeEtcdClient, generic.Registry) {
 	f := tools.NewFakeEtcdClient(t)
 	f.TestIndex = true
 	h := tools.EtcdHelper{f, testapi.Codec(), tools.RuntimeVersionAdapter{testapi.MetadataAccessor()}}
 	return f, NewEtcdRegistry(h)
 }
 
-func TestPersistentVolumeControllerCreate(t *testing.T) {
-	storageDeviceA := &api.PersistentVolumeController{
+func TestPersistentVolumeClaimCreate(t *testing.T) {
+	storageDeviceA := &api.PersistentVolumeClaim{
 		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
 	}
 
-	storageDeviceB := &api.PersistentVolumeController{
+	storageDeviceB := &api.PersistentVolumeClaim{
 		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
 	}
 
@@ -94,7 +94,7 @@ func TestPersistentVolumeControllerCreate(t *testing.T) {
 	}
 
 	for name, item := range table {
-		fakeClient, registry := NewTestPersistentVolumeControllerEtcdRegistry(t)
+		fakeClient, registry := NewTestPersistentVolumeClaimEtcdRegistry(t)
 		fakeClient.Data[path] = item.existing
 		err := registry.Create(ctx, key, item.toCreate)
 		if !item.errOK(err) {

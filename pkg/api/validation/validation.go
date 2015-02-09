@@ -284,7 +284,7 @@ func ValidatePersistentVolume(persistentvolume *api.PersistentVolume) errs.Valid
 	return allErrs
 }
 
-func ValidatePersistentVolumeController(persistentvolumecontroller *api.PersistentVolumeController) errs.ValidationErrorList {
+func ValidatePersistentVolumeClaim(persistentvolumeclaim *api.PersistentVolumeClaim) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	return allErrs
 }
