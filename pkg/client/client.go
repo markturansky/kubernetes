@@ -41,7 +41,7 @@ type Interface interface {
 	ResourceQuotasNamespacer
 	ResourceQuotaUsagesNamespacer
 	PersistentVolumesNamespacer
-	PersistentVolumeControllersNamespacer
+	PersistentVolumeClaimsNamespacer
 }
 
 func (c *Client) ReplicationControllers(namespace string) ReplicationControllerInterface {
@@ -83,8 +83,8 @@ func (c *Client) PersistentVolumes(namespace string) PersistentVolumeInterface {
 	return newPersistentVolumes(c, namespace)
 }
 
-func (c *Client) PersistentVolumeControllers(namespace string) PersistentVolumeControllerInterface {
-	return newPersistentVolumeControllers(c, namespace)
+func (c *Client) PersistentVolumeClaims(namespace string) PersistentVolumeClaimInterface {
+	return newPersistentVolumeClaims(c, namespace)
 }
 
 // VersionInterface has a method to retrieve the server version.

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package persistentvolumecontroller
+package persistentvolumeclaim
 
 import (
 	"fmt"
@@ -46,28 +46,28 @@ func NewREST(registry generic.Registry) *REST {
 }
 
 func (*REST) New() runtime.Object {
-	return &api.PersistentVolumeController{}
+	return &api.PersistentVolumeClaim{}
 }
 
 func (*REST) NewList() runtime.Object {
-	return &api.PersistentVolumeControllerList{}
+	return &api.PersistentVolumeClaimList{}
 }
 
 func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	persistentvolumecontroller := obj.(*api.PersistentVolumeController)
-	if !api.ValidNamespace(ctx, &persistentvolumecontroller.ObjectMeta) {
-		return nil, errors.NewConflict("persistentvolumecontroller", persistentvolumecontroller.Namespace, fmt.Errorf("PersisPersistentVolumeller.Namespace does not match the provided context"))
+	persistentvolumeclaim := obj.(*api.PersistentVolumeClaim)
+	if !api.ValidNamespace(ctx, &persistentvolumeclaim.ObjectMeta) {
+		return nil, errors.NewConflict("persistentvolumeclaim", persistentvolumeclaim.Namespace, fmt.Errorf("PersisPersistentVolumeller.Namespace does not match the provided context"))
 	}
 
-	api.FillObjectMetaSystemFields(ctx, &persistentvolumecontroller.ObjectMeta)
-	if errs := validation.ValidatePersistentVolumeController(persistentvolumecontroller); len(errs) > 0 {
-		return nil, errors.NewInvalid("persistentvolumecontroller", persistentvolumecontroller.Name, errs)
+	api.FillObjectMetaSystemFields(ctx, &persistentvolumeclaim.ObjectMeta)
+	if errs := validation.ValidatePersistentVolumeClaim(persistentvolumeclaim); len(errs) > 0 {
+		return nil, errors.NewInvalid("persistentvolumeclaim", persistentvolumeclaim.Name, errs)
 	}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := rs.registry.Create(ctx, persistentvolumecontroller.Name, persistentvolumecontroller); err != nil {
+		if err := rs.registry.Create(ctx, persistentvolumeclaim.Name, persistentvolumeclaim); err != nil {
 			return nil, err
 		}
-		return rs.registry.Get(ctx, persistentvolumecontroller.Name)
+		return rs.registry.Get(ctx, persistentvolumeclaim.Name)
 	}), nil
 }
 
@@ -78,14 +78,14 @@ func (rs *REST) Delete(ctx api.Context, id string) (<-chan apiserver.RESTResult,
 }
 
 func (rs *REST) Get(ctx api.Context, id string) (runtime.Object, error) {
-	persistentvolumecontroller, err := rs.registry.Get(ctx, id)
+	persistentvolumeclaim, err := rs.registry.Get(ctx, id)
 	if err != nil {
-		return persistentvolumecontroller, err
+		return persistentvolumeclaim, err
 	}
-	if persistentvolumecontroller == nil {
-		return persistentvolumecontroller, nil
+	if persistentvolumeclaim == nil {
+		return persistentvolumeclaim, nil
 	}
-	return persistentvolumecontroller, err
+	return persistentvolumeclaim, err
 }
 
 func (rs *REST) getAttrs(obj runtime.Object) (objLabels, objFields labels.Set, err error) {
@@ -101,17 +101,17 @@ func (rs *REST) Watch(ctx api.Context, label, field labels.Selector, resourceVer
 }
 
 func (rs *REST) Update(ctx api.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	persistentvolumecontroller := obj.(*api.PersistentVolumeController)
-	if !api.ValidNamespace(ctx, &persistentvolumecontroller.ObjectMeta) {
-		return nil, errors.NewConflict("persistentvolumecontroller", persistentvolumecontroller.Namespace, fmt.Errorf("PersistentStorageController.Namespace does not match the provided context"))
+	persistentvolumeclaim := obj.(*api.PersistentVolumeClaim)
+	if !api.ValidNamespace(ctx, &persistentvolumeclaim.ObjectMeta) {
+		return nil, errors.NewConflict("persistentvolumeclaim", persistentvolumeclaim.Namespace, fmt.Errorf("PersistentStorageController.Namespace does not match the provided context"))
 	}
-	if errs := validation.ValidatePersistentVolumeController(persistentvolumecontroller); len(errs) > 0 {
-		return nil, errors.NewInvalid("persistentvolumecontroller", persistentvolumecontroller.Name, errs)
+	if errs := validation.ValidatePersistentVolumeClaim(persistentvolumeclaim); len(errs) > 0 {
+		return nil, errors.NewInvalid("persistentvolumeclaim", persistentvolumeclaim.Name, errs)
 	}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := rs.registry.Update(ctx, persistentvolumecontroller.Name, persistentvolumecontroller); err != nil {
+		if err := rs.registry.Update(ctx, persistentvolumeclaim.Name, persistentvolumeclaim); err != nil {
 			return nil, err
 		}
-		return rs.registry.Get(ctx, persistentvolumecontroller.Name)
+		return rs.registry.Get(ctx, persistentvolumeclaim.Name)
 	}), nil
 }

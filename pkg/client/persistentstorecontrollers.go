@@ -25,79 +25,79 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
-// PersistentVolumeControllersNamespacer has methods to work with PersistentVolumeController resources in a namespace
-type PersistentVolumeControllersNamespacer interface {
-	PersistentVolumeControllers(namespace string) PersistentVolumeControllerInterface
+// PersistentVolumeClaimsNamespacer has methods to work with PersistentVolumeClaim resources in a namespace
+type PersistentVolumeClaimsNamespacer interface {
+	PersistentVolumeClaims(namespace string) PersistentVolumeClaimInterface
 }
 
-// PersistentVolumeControllerInterface has methods to work with PersistentVolumeController resources.
-type PersistentVolumeControllerInterface interface {
-	List(selector labels.Selector) (*api.PersistentVolumeControllerList, error)
-	Get(name string) (*api.PersistentVolumeController, error)
-	Create(ctrl *api.PersistentVolumeController) (*api.PersistentVolumeController, error)
-	Update(ctrl *api.PersistentVolumeController) (*api.PersistentVolumeController, error)
+// PersistentVolumeClaimInterface has methods to work with PersistentVolumeClaim resources.
+type PersistentVolumeClaimInterface interface {
+	List(selector labels.Selector) (*api.PersistentVolumeClaimList, error)
+	Get(name string) (*api.PersistentVolumeClaim, error)
+	Create(ctrl *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error)
+	Update(ctrl *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error)
 	Delete(name string) error
 	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 }
 
-// persistentVolumeControllers implements PersistentVolumeControllersNamespacer interface
-type persistentVolumeControllers struct {
+// persistentVolumeClaims implements PersistentVolumeClaimsNamespacer interface
+type persistentVolumeClaims struct {
 	r  *Client
 	ns string
 }
 
-// newPersistentVolumeControllers returns a PodsClient
-func newPersistentVolumeControllers(c *Client, namespace string) *persistentVolumeControllers {
-	return &persistentVolumeControllers{c, namespace}
+// newPersistentVolumeClaims returns a PodsClient
+func newPersistentVolumeClaims(c *Client, namespace string) *persistentVolumeClaims {
+	return &persistentVolumeClaims{c, namespace}
 }
 
 // List takes a selector, and returns the list of replication controllers that match that selector.
-func (c *persistentVolumeControllers) List(selector labels.Selector) (result *api.PersistentVolumeControllerList, err error) {
-	result = &api.PersistentVolumeControllerList{}
-	err = c.r.Get().Namespace(c.ns).Resource("persistentVolumeControllers").SelectorParam("labels", selector).Do().Into(result)
+func (c *persistentVolumeClaims) List(selector labels.Selector) (result *api.PersistentVolumeClaimList, err error) {
+	result = &api.PersistentVolumeClaimList{}
+	err = c.r.Get().Namespace(c.ns).Resource("persistentVolumeClaims").SelectorParam("labels", selector).Do().Into(result)
 	return
 }
 
 // Get returns information about a particular replication controller.
-func (c *persistentVolumeControllers) Get(name string) (result *api.PersistentVolumeController, err error) {
+func (c *persistentVolumeClaims) Get(name string) (result *api.PersistentVolumeClaim, err error) {
 	if len(name) == 0 {
 		return nil, errors.New("name is required parameter to Get")
 	}
 
-	result = &api.PersistentVolumeController{}
-	err = c.r.Get().Namespace(c.ns).Resource("persistentVolumeControllers").Name(name).Do().Into(result)
+	result = &api.PersistentVolumeClaim{}
+	err = c.r.Get().Namespace(c.ns).Resource("persistentVolumeClaims").Name(name).Do().Into(result)
 	return
 }
 
 // Create creates a new replication controller.
-func (c *persistentVolumeControllers) Create(controller *api.PersistentVolumeController) (result *api.PersistentVolumeController, err error) {
-	result = &api.PersistentVolumeController{}
-	err = c.r.Post().Namespace(c.ns).Resource("persistentVolumeControllers").Body(controller).Do().Into(result)
+func (c *persistentVolumeClaims) Create(controller *api.PersistentVolumeClaim) (result *api.PersistentVolumeClaim, err error) {
+	result = &api.PersistentVolumeClaim{}
+	err = c.r.Post().Namespace(c.ns).Resource("persistentVolumeClaims").Body(controller).Do().Into(result)
 	return
 }
 
 // Update updates an existing replication controller.
-func (c *persistentVolumeControllers) Update(controller *api.PersistentVolumeController) (result *api.PersistentVolumeController, err error) {
-	result = &api.PersistentVolumeController{}
+func (c *persistentVolumeClaims) Update(controller *api.PersistentVolumeClaim) (result *api.PersistentVolumeClaim, err error) {
+	result = &api.PersistentVolumeClaim{}
 	if len(controller.ResourceVersion) == 0 {
 		err = fmt.Errorf("invalid update object, missing resource version: %v", controller)
 		return
 	}
-	err = c.r.Put().Namespace(c.ns).Resource("persistentVolumeControllers").Name(controller.Name).Body(controller).Do().Into(result)
+	err = c.r.Put().Namespace(c.ns).Resource("persistentVolumeClaims").Name(controller.Name).Body(controller).Do().Into(result)
 	return
 }
 
 // Delete deletes an existing replication controller.
-func (c *persistentVolumeControllers) Delete(name string) error {
-	return c.r.Delete().Namespace(c.ns).Resource("persistentVolumeControllers").Name(name).Do().Error()
+func (c *persistentVolumeClaims) Delete(name string) error {
+	return c.r.Delete().Namespace(c.ns).Resource("persistentVolumeClaims").Name(name).Do().Error()
 }
 
 // Watch returns a watch.Interface that watches the requested controllers.
-func (c *persistentVolumeControllers) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *persistentVolumeClaims) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).
-		Resource("persistentVolumeControllers").
+		Resource("persistentVolumeClaims").
 		Param("resourceVersion", resourceVersion).
 		SelectorParam("labels", label).
 		SelectorParam("fields", field).

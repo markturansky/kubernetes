@@ -24,36 +24,36 @@ import (
 
 // FakePods implements PodsInterface. Meant to be embedded into a struct to get a default
 // implementation. This makes faking out just the methods you want to test easier.
-type FakePersistentVolumeControllers struct {
+type FakePersistentVolumeClaims struct {
 	Fake      *Fake
 	Namespace string
 }
 
-func (c *FakePersistentVolumeControllers) List(selector labels.Selector) (*api.PersistentVolumeControllerList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-persistentVolumeControllers"})
-	return api.Scheme.CopyOrDie(&c.Fake.PersistentVolumeControllerList).(*api.PersistentVolumeControllerList), nil
+func (c *FakePersistentVolumeClaims) List(selector labels.Selector) (*api.PersistentVolumeClaimList, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-persistentVolumeClaims"})
+	return api.Scheme.CopyOrDie(&c.Fake.PersistentVolumeClaimList).(*api.PersistentVolumeClaimList), nil
 }
 
-func (c *FakePersistentVolumeControllers) Get(name string) (*api.PersistentVolumeController, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-persistentVolumeController", Value: name})
-	return &api.PersistentVolumeController{ObjectMeta: api.ObjectMeta{Name: name, Namespace: c.Namespace}}, nil
+func (c *FakePersistentVolumeClaims) Get(name string) (*api.PersistentVolumeClaim, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-persistentVolumeClaim", Value: name})
+	return &api.PersistentVolumeClaim{ObjectMeta: api.ObjectMeta{Name: name, Namespace: c.Namespace}}, nil
 }
 
-func (c *FakePersistentVolumeControllers) Delete(name string) error {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-persistentVolumeController", Value: name})
+func (c *FakePersistentVolumeClaims) Delete(name string) error {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-persistentVolumeClaim", Value: name})
 	return nil
 }
 
-func (c *FakePersistentVolumeControllers) Create(persistentvolumecontroller *api.PersistentVolumeController) (*api.PersistentVolumeController, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-persistentVolumeController"})
-	return &api.PersistentVolumeController{}, nil
+func (c *FakePersistentVolumeClaims) Create(persistentvolumeclaim *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-persistentVolumeClaim"})
+	return &api.PersistentVolumeClaim{}, nil
 }
 
-func (c *FakePersistentVolumeControllers) Update(persistentvolumecontroller *api.PersistentVolumeController) (*api.PersistentVolumeController, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-persistentVolumeController", Value: persistentvolumecontroller.Name})
-	return &api.PersistentVolumeController{}, nil
+func (c *FakePersistentVolumeClaims) Update(persistentvolumeclaim *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-persistentVolumeClaim", Value: persistentvolumeclaim.Name})
+	return &api.PersistentVolumeClaim{}, nil
 }
 
-func (c *FakePersistentVolumeControllers) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
+func (c *FakePersistentVolumeClaims) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return nil, nil
 }

@@ -47,8 +47,8 @@ func DescriberFor(kind string, c *client.Client) (Describer, bool) {
 		return &ServiceDescriber{c}, true
 	case "PersistentVolume":
 		return &PersistentVolumeDescriber{c}, true
-	case "PersistentVolumeController":
-		return &PersistentVolumeControllerDescriber{c}, true
+	case "PersistentVolumeClaim":
+		return &PersistentVolumeClaimDescriber{c}, true
 	case "Minion", "Node":
 		return &MinionDescriber{c}, true
 	case "LimitRange":
@@ -225,12 +225,12 @@ func (d *PersistentVolumeDescriber) Describe(namespace, name string) (string, er
 	})
 }
 
-type PersistentVolumeControllerDescriber struct {
+type PersistentVolumeClaimDescriber struct {
 	client.Interface
 }
 
-func (d *PersistentVolumeControllerDescriber) Describe(namespace, name string) (string, error) {
-	c := d.PersistentVolumeControllers(namespace)
+func (d *PersistentVolumeClaimDescriber) Describe(namespace, name string) (string, error) {
+	c := d.PersistentVolumeClaims(namespace)
 
 	psd, err := c.Get(name)
 	if err != nil {

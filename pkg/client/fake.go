@@ -45,7 +45,7 @@ type Fake struct {
 	LimitRangesList    api.LimitRangeList
 	ResourceQuotasList api.ResourceQuotaList
 	PersistentVolumesList       api.PersistentVolumeList
-	PersistentVolumeControllerList api.PersistentVolumeControllerList
+	PersistentVolumeClaimList api.PersistentVolumeClaimList
 	Err                error
 	Watch              watch.Interface
 }
@@ -86,8 +86,8 @@ func (c *Fake) PersistentVolumes(namespace string) PersistentVolumeInterface {
 	return &FakePersistentVolumes{Fake: c, Namespace: namespace}
 }
 
-func (c *Fake) PersistentVolumeControllers(namespace string) PersistentVolumeControllerInterface {
-	return &FakePersistentVolumeControllers{Fake: c, Namespace: namespace}
+func (c *Fake) PersistentVolumeClaims(namespace string) PersistentVolumeClaimInterface {
+	return &FakePersistentVolumeClaims{Fake: c, Namespace: namespace}
 }
 
 func (c *Fake) Services(namespace string) ServiceInterface {

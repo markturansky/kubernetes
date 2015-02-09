@@ -1047,7 +1047,7 @@ func init() {
 			}
 			return nil
 		},
-		func(in *PersistentVolumeController, out *newer.PersistentVolumeController, s conversion.Scope) error {
+		func(in *PersistentVolumeClaim, out *newer.PersistentVolumeClaim, s conversion.Scope) error {
 			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
@@ -1062,7 +1062,7 @@ func init() {
 			}
 			return nil
 		},
-		func(in *newer.PersistentVolumeController, out *PersistentVolumeController, s conversion.Scope) error {
+		func(in *newer.PersistentVolumeClaim, out *PersistentVolumeClaim, s conversion.Scope) error {
 			if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
@@ -1077,7 +1077,7 @@ func init() {
 			}
 			return nil
 		},
-		func(in *newer.PersistentVolumeControllerList, out *PersistentVolumeControllerList, s conversion.Scope) error {
+		func(in *newer.PersistentVolumeClaimList, out *PersistentVolumeClaimList, s conversion.Scope) error {
 			if err := s.Convert(&in.ListMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
@@ -1086,7 +1086,7 @@ func init() {
 			}
 			return nil
 		},
-		func(in *PersistentVolumeControllerList, out *newer.PersistentVolumeControllerList, s conversion.Scope) error {
+		func(in *PersistentVolumeClaimList, out *newer.PersistentVolumeClaimList, s conversion.Scope) error {
 			if err := s.Convert(&in.TypeMeta, &out.ListMeta, 0); err != nil {
 				return err
 			}
@@ -1095,7 +1095,7 @@ func init() {
 			}
 			return nil
 		},
-		func(in *newer.PersistentVolumeControllerSpec, out *PersistentVolumeControllerSpec, s conversion.Scope) error {
+		func(in *newer.PersistentVolumeClaimSpec, out *PersistentVolumeClaimSpec, s conversion.Scope) error {
 			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
 				return err
 			}
@@ -1107,7 +1107,7 @@ func init() {
 			}
 			return nil
 		},
-		func(in *PersistentVolumeControllerSpec, out *newer.PersistentVolumeControllerSpec, s conversion.Scope) error {
+		func(in *PersistentVolumeClaimSpec, out *newer.PersistentVolumeClaimSpec, s conversion.Scope) error {
 			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
 				return err
 			}
