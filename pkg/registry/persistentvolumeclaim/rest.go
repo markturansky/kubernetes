@@ -54,13 +54,17 @@ func (*REST) NewList() runtime.Object {
 }
 
 func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	persistentvolumeclaim := obj.(*api.PersistentVolumeClaim)
+	persistentvolumeclaim, ok := obj.(*api.PersistentVolumeClaim)
+	if !ok {
+		return nil, fmt.Errorf("invalid object type")
+	}
+
 	if !api.ValidNamespace(ctx, &persistentvolumeclaim.ObjectMeta) {
-		return nil, errors.NewConflict("persistentvolumeclaim", persistentvolumeclaim.Namespace, fmt.Errorf("PersisPersistentVolumeller.Namespace does not match the provided context"))
+		return nil, errors.NewConflict("persistentVolumeClaim", persistentvolumeclaim.Namespace, fmt.Errorf("PersistentVolumeClaim.Namespace does not match the provided context"))
 	}
 
 	api.FillObjectMetaSystemFields(ctx, &persistentvolumeclaim.ObjectMeta)
-	if errs := validation.ValidatePersistentVolumeClaim(persistentvolumeclaim); len(errs) > 0 {
+	if errs := validation.ValidatePersistentVolumeClaim(*persistentvolumeclaim); len(errs) > 0 {
 		return nil, errors.NewInvalid("persistentvolumeclaim", persistentvolumeclaim.Name, errs)
 	}
 	return apiserver.MakeAsync(func() (runtime.Object, error) {

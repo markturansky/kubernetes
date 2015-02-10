@@ -276,16 +276,17 @@ func validateGCEPersistentDisk(PD *api.GCEPersistentDisk) errs.ValidationErrorLi
 	return allErrs
 }
 
+func ValidatePersistentVolumeName(name string, prefix bool) (bool, string){
+	return util.IsDNS1123Label(name), name
+}
+
 func ValidatePersistentVolume(persistentvolume *api.PersistentVolume) errs.ValidationErrorList {
-	allErrs := ValidateObjectMeta(&persistentvolume.ObjectMeta, false,
-		func(name string, prefix bool) (bool, string) {
-			return util.IsDNS1123Label(name), name
-		})
+	allErrs := ValidateObjectMeta(&persistentvolume.ObjectMeta, false, ValidatePersistentVolumeName)
 	return allErrs
 }
 
 func ValidatePersistentVolumeClaim(persistentvolumeclaim *api.PersistentVolumeClaim) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+	allErrs := ValidateObjectMeta(&persistentvolumeclaim.ObjectMeta, true, ValidatePersistentVolumeName)
 	return allErrs
 }
 
