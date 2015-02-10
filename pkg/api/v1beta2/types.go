@@ -45,32 +45,6 @@ import (
 //     or more simply:
 //         DNS_LABEL(\.DNS_LABEL)*
 
-type StoreRetentionPolicy string
-type PersistenceRetentionPolicy string
-
-const (
-	RecycleOnDelete PersistenceRetentionPolicy = "RecycleOnDelete"
-	RetainOnDelete PersistenceRetentionPolicy = "RetainOnDelete"
-	NeverDelete StoreRetentionPolicy = "NeverDelete"
-)
-
-type MountMode byte
-const (
-	ReadWriteOnce MountMode = 1 << iota
-	ReadOnlyMany
-	ReadWriteMany
-)
-
-func (vs *VolumeSource) canMount(mode MountMode) bool {
-	return vs.Modes & mode != 0
-}
-
-type PersistenceRequirements struct {
-	Mode	MountMode `json:"mode,omitempty"`
-	RetentionPolicy	PersistenceRetentionPolicy `json:"retentionPolicy,omitemty`
-	Resources ResourceList `json:resources,omitempty`
-}
-
 // Volume represents a named volume in a pod that may be accessed by any containers in the pod.
 type Volume struct {
 	// Required: This must be a DNS_LABEL.  Each volume in a pod must have
@@ -80,9 +54,6 @@ type Volume struct {
 	// This is optional for now. If not specified, the Volume is implied to be an EmptyDir.
 	// This implied behavior is deprecated and will be removed in a future version.
 	Source VolumeSource `json:"source,omitempty" description:"location and type of volume to mount; at most one of HostDir, EmptyDir, GCEPersistentDisk, or GitRepo; default is EmptyDir"`
-	// a Volume will specify a VolumeSource or PersistenceRequirements where the latter is bound
-	// to an available PersistentVolume.VolumeSource
-	Persistence PersistenceRequirements `json:"persistence,omitempty`
 }
 
 // VolumeSource represents the source location of a volume to mount.
@@ -106,29 +77,24 @@ type VolumeSource struct {
 
 	NFSMount *NFSMount `json:"nfsMount"`
 
-	Modes MountMode `json:modes,omitempty`
-}
-
-type AWSElasticBlockStore struct {
-	// the device's EBS volumeID from AWS
-	VolumeID string `json:"volumeId"`
-}
-
-type NFSMount struct {
-	Server       string `json:"server"`
-	SourcePath   string `json:"sourcePath"`
-	MountOptions string `json:"mountOptions"`
+	PersistentVolumeClaim *PersistentVolumeClaimAttachment `json:"persistentVolumeClaim,omitempty"`
 }
 
 type PersistentVolume struct {
-	TypeMeta `json:",inline"`
-
-	//Spec defines the storage requested by a pod author
+	TypeMeta   `json:",inline"`
+	//Spec defines a persistent volume owned by the cluster
 	Spec PersistentVolumeSpec `json:"spec,omitempty"`
-
-	// Status represents the current information about a storage device.
-	// This data may not be up to date.
+	// Status represents the current information about persistent volume.
 	Status PersistentVolumeStatus `json:"status,omitempty"`
+}
+
+type PersistentVolumeSpec struct {
+	Capacity ResourceList `json:"capacity,omitempty`
+	Source	VolumeSource `json:"source,omitempty"`
+}
+
+type PersistentVolumeStatus struct {
+	Phase       StoragePhase    `json:"phase,omitempty"`
 }
 
 type PersistentVolumeList struct {
@@ -136,27 +102,14 @@ type PersistentVolumeList struct {
 	Items    []PersistentVolume `json:"items"`
 }
 
-type PersistentVolumeSpec struct {
-	Source	VolumeSource `json:"source,omitempty"`
-	RetentionPolicy StoreRetentionPolicy `json:"retentionPolicy,omitempty"`
-}
-
-type PersistentVolumeStatus struct {
-	Phase       StoragePhase    `json:"phase,omitempty"`
-	PodRef 		ObjectReference `json:"podRef,omitempty"`
-	CurrentMounts MountList `json:"currentMounts,omitempty"`
-	LastMounts	MountList `json:"lastMounts,omitempty"`
-}
-
-// PersistentVolumeClaim is an actual storage device backed by a provider to be
-// paired with a PersistentVolume request by pod authors
+// a PersistentVolumeClaim is a user's request for and claim to a persistent volume
 type PersistentVolumeClaim struct {
-	TypeMeta `json:",inline"`
+	TypeMeta   `json:",inline"`
 
-	// Spec defines the storage device
+	// Spec defines the  device
 	Spec PersistentVolumeClaimSpec `json:"spec,omitempty"`
 
-	// Status represents the current information about a storage device.
+	// Status represents the current information about a persistent volume.
 	// this data may not be up to date.
 	Status PersistentVolumeClaimStatus `json:"status,omitempty"`
 }
@@ -169,28 +122,26 @@ type PersistentVolumeClaimList struct {
 // a PersistentVolumeClaimSpec describes the common attributes of storage devices
 // and allows a Source for provider-specific attributes
 type PersistentVolumeClaimSpec struct {
+	// Contains the types of access modes desired
+	AccessModes []AccessModeType
+	Resources ResourceList
+	PersistentVolumeSelector map[string]string `json:"selector,omitempty"`
+}
 
-	// Source contains provider-specific information about a storage device
-	Source VolumeSource `json:"source,omitempty"`
+type ReadWriteOnce struct{}
+type ReadOnlyMany struct {}
+type ReadWriteMany struct{}
 
-	MaxInstances int `json:"maxInstances,omitempty"`
-	IncrementBy int `json:"incrementBy,omitempty"`
+type AccessModeType struct {
+	// Any of these access modes may be be specified.
+	// If none are specified, the default is ReadWriteOnce
+	ReadWriteOnce *ReadWriteOnce `json:"always,omitempty"`
+	ReadOnlyMany  *ReadOnlyMany  `json:"onFailure,omitempty"`
+	ReadWriteMany *ReadWriteMany `json:"never,omitempty"`
 }
 
 type PersistentVolumeClaimStatus struct {
-	InstanceCount int `json:"instanceCount,omitempty"`
-}
-
-type Mount struct {
-	Host        string       `json:"host,omitempty"`
-	HostIP      string       `json:"hostIP,omitempty"`
-	MountedDate util.Time    `json:"mountedDate,omitempty"`
-	Phase       StoragePhase `json:"phase,omitempty"`
-}
-
-type MountList struct {
-	TypeMeta `json:",inline"`
-	Items    []Mount `json:"items"`
+	Phase StoragePhase `json:"phase,omitempty"`
 }
 
 type StoragePhase string
@@ -204,6 +155,23 @@ const (
 	MountFailed  StoragePhase = "Failed"
 	MountDelete  StoragePhase = "Deleted"
 )
+
+type PersistentVolumeClaimAttachment struct {
+	AccessMode AccessModeType `json:accessMode,omitempty`
+	PersistentVolumeClaimReference *ObjectReference `json:persistentVolumeClaim,omitempty`
+}
+
+type AWSElasticBlockStore struct {
+	// the device's EBS volumeID from AWS
+	VolumeID string `json:"volumeId"`
+}
+
+type NFSMount struct {
+	Server       string `json:"server"`
+	SourcePath   string `json:"sourcePath"`
+	MountOptions string `json:"mountOptions"`
+}
+
 
 // HostPath represents bare host directory volume.
 type HostPath struct {

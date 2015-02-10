@@ -922,7 +922,7 @@ func init() {
 			if err := s.Convert(&in.NFSMount, &out.NFSMount, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.Modes, &out.Modes, 0); err != nil {
+			if err := s.Convert(&in.PersistentVolumeClaim, &out.PersistentVolumeClaim, 0); err != nil {
 				return err
 			}
 			return nil
@@ -946,7 +946,7 @@ func init() {
 			if err := s.Convert(&in.NFSMount, &out.NFSMount, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.Modes, &out.Modes, 0); err != nil {
+			if err := s.Convert(&in.PersistentVolumeClaim, &out.PersistentVolumeClaim, 0); err != nil {
 				return err
 			}
 			return nil
@@ -1003,7 +1003,7 @@ func init() {
 			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.RetentionPolicy, &out.RetentionPolicy, 0); err != nil {
+			if err := s.Convert(&in.Capacity, &out.Capacity, 0); err != nil {
 				return err
 			}
 			return nil
@@ -1012,7 +1012,7 @@ func init() {
 			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.RetentionPolicy, &out.RetentionPolicy, 0); err != nil {
+			if err := s.Convert(&in.Capacity, &out.Capacity, 0); err != nil {
 				return err
 			}
 			return nil
@@ -1021,28 +1021,10 @@ func init() {
 			if err := s.Convert(&in.Phase, &out.Phase, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.PodRef, &out.PodRef, 0); err != nil {
-				return err
-			}
-			if err := s.Convert(&in.CurrentMounts, &out.CurrentMounts, 0); err != nil {
-				return err
-			}
-			if err := s.Convert(&in.LastMounts, &out.LastMounts, 0); err != nil {
-				return err
-			}
 			return nil
 		},
 		func(in *PersistentVolumeStatus, out *newer.PersistentVolumeStatus, s conversion.Scope) error {
 			if err := s.Convert(&in.Phase, &out.Phase, 0); err != nil {
-				return err
-			}
-			if err := s.Convert(&in.PodRef, &out.PodRef, 0); err != nil {
-				return err
-			}
-			if err := s.Convert(&in.CurrentMounts, &out.CurrentMounts, 0); err != nil {
-				return err
-			}
-			if err := s.Convert(&in.LastMounts, &out.LastMounts, 0); err != nil {
 				return err
 			}
 			return nil
@@ -1096,43 +1078,25 @@ func init() {
 			return nil
 		},
 		func(in *newer.PersistentVolumeClaimSpec, out *PersistentVolumeClaimSpec, s conversion.Scope) error {
-			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
+			if err := s.Convert(&in.AccessModes, &out.AccessModes, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.MaxInstances, &out.MaxInstances, 0); err != nil {
+			if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.IncrementBy, &out.IncrementBy, 0); err != nil {
+			if err := s.Convert(&in.PersistentVolumeSelector, &out.PersistentVolumeSelector, 0); err != nil {
 				return err
 			}
 			return nil
 		},
 		func(in *PersistentVolumeClaimSpec, out *newer.PersistentVolumeClaimSpec, s conversion.Scope) error {
-			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
+			if err := s.Convert(&in.AccessModes, &out.AccessModes, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.MaxInstances, &out.MaxInstances, 0); err != nil {
+			if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.IncrementBy, &out.IncrementBy, 0); err != nil {
-				return err
-			}
-			return nil
-		},
-		func(in *newer.MountList, out *MountList, s conversion.Scope) error {
-			if err := s.Convert(&in.ListMeta, &out.TypeMeta, 0); err != nil {
-				return err
-			}
-			if err := s.Convert(&in.Items, &out.Items, 0); err != nil {
-				return err
-			}
-			return nil
-		},
-		func(in *MountList, out *newer.MountList, s conversion.Scope) error {
-			if err := s.Convert(&in.TypeMeta, &out.ListMeta, 0); err != nil {
-				return err
-			}
-			if err := s.Convert(&in.Items, &out.Items, 0); err != nil {
+			if err := s.Convert(&in.PersistentVolumeSelector, &out.PersistentVolumeSelector, 0); err != nil {
 				return err
 			}
 			return nil

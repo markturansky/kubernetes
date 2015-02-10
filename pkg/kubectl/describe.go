@@ -239,7 +239,7 @@ func (d *PersistentVolumeClaimDescriber) Describe(namespace, name string) (strin
 
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", psd.Name)
-		fmt.Fprintf(out, "Status:\t%d\n", psd.Status.InstanceCount)
+		fmt.Fprintf(out, "Status:\t%d\n", psd.Status.Phase)
 
 		return nil
 	})
