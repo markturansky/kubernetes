@@ -108,7 +108,7 @@ type VolumeSource struct {
 
 	NFSMount *NFSMount `json:"nfsMount"`
 
-	PersistentVolumeClaim *PersistentVolumeClaimAttachment `json:"persistentVolumeClaim,omitempty"`
+	PersistentVolumeClaimAttachment *PersistentVolumeClaimAttachment `json:"persistentVolumeClaim,omitempty"`
 }
 
 type PersistentVolume struct {
@@ -126,6 +126,7 @@ type PersistentVolumeSpec struct {
 
 type PersistentVolumeStatus struct {
 	Phase       StoragePhase    `json:"phase,omitempty"`
+	PersistentVolumeClaimReference *ObjectReference `json:persistentVolumeClaimReference,omitempty`
 }
 
 type PersistentVolumeList struct {
@@ -154,9 +155,16 @@ type PersistentVolumeClaimList struct {
 // and allows a Source for provider-specific attributes
 type PersistentVolumeClaimSpec struct {
 	// Contains the types of access modes desired
-	AccessModes []AccessModeType
-	Resources ResourceList
+	AccessModes AccessModeType `json:"accessModes,omitempty"`
+	Resources ResourceList `json:"resources,omitempty"`
 	PersistentVolumeSelector map[string]string `json:"selector,omitempty"`
+}
+
+type PersistentVolumeClaimStatus struct {
+	Phase StoragePhase `json:"phase,omitempty"`
+	AccessModes AccessModeType
+	Resources ResourceList
+	PersistentVolumeReference *ObjectReference
 }
 
 type ReadWriteOnce struct{}
@@ -169,10 +177,6 @@ type AccessModeType struct {
 	ReadWriteOnce *ReadWriteOnce `json:"always,omitempty"`
 	ReadOnlyMany  *ReadOnlyMany  `json:"onFailure,omitempty"`
 	ReadWriteMany *ReadWriteMany `json:"never,omitempty"`
-}
-
-type PersistentVolumeClaimStatus struct {
-	Phase StoragePhase `json:"phase,omitempty"`
 }
 
 type StoragePhase string
@@ -189,7 +193,7 @@ const (
 
 type PersistentVolumeClaimAttachment struct {
 	AccessMode AccessModeType `json:accessMode,omitempty`
-	PersistentVolumeClaimReference *ObjectReference `json:persistentVolumeClaim,omitempty`
+	PersistentVolumeClaimReference *ObjectReference `json:persistentVolumeClaimReference,omitempty`
 }
 
 type AWSElasticBlockStore struct {
@@ -755,6 +759,9 @@ const (
 	ResourceCPU ResourceName = "cpu"
 	// Memory, in bytes.
 	ResourceMemory ResourceName = "memory"
+	ResourceSize ResourceName = "size"
+	ResourceIOPS ResourceName = "iops"
+	ResourceThrough ResourceName = "throughput"
 )
 
 type ResourceList map[ResourceName]util.IntOrString

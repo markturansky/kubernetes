@@ -33,6 +33,7 @@ import (
 	replicationControllerPkg "github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/healthz"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/hyperkube"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/petco"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
@@ -40,7 +41,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/petco"
 )
 
 // CMServer is the mail context object for the controller manager.
