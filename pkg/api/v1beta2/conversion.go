@@ -949,7 +949,7 @@ func init() {
 			if err := s.Convert(&in.NFSMount, &out.NFSMount, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.PersistentVolumeClaim, &out.PersistentVolumeClaim, 0); err != nil {
+			if err := s.Convert(&in.PersistentVolumeClaimAttachment, &out.PersistentVolumeClaimAttachment, 0); err != nil {
 				return err
 			}
 			return nil
@@ -973,7 +973,7 @@ func init() {
 			if err := s.Convert(&in.NFSMount, &out.NFSMount, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.PersistentVolumeClaim, &out.PersistentVolumeClaim, 0); err != nil {
+			if err := s.Convert(&in.PersistentVolumeClaimAttachment, &out.PersistentVolumeClaimAttachment, 0); err != nil {
 				return err
 			}
 			return nil
@@ -1048,10 +1048,16 @@ func init() {
 			if err := s.Convert(&in.Phase, &out.Phase, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.PersistentVolumeClaimReference, &out.PersistentVolumeClaimReference, 0); err != nil {
+				return err
+			}
 			return nil
 		},
 		func(in *PersistentVolumeStatus, out *newer.PersistentVolumeStatus, s conversion.Scope) error {
 			if err := s.Convert(&in.Phase, &out.Phase, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.PersistentVolumeClaimReference, &out.PersistentVolumeClaimReference, 0); err != nil {
 				return err
 			}
 			return nil

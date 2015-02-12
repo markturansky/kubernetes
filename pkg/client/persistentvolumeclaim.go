@@ -34,8 +34,8 @@ type PersistentVolumeClaimsNamespacer interface {
 type PersistentVolumeClaimInterface interface {
 	List(selector labels.Selector) (*api.PersistentVolumeClaimList, error)
 	Get(name string) (*api.PersistentVolumeClaim, error)
-	Create(ctrl *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error)
-	Update(ctrl *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error)
+	Create(claim *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error)
+	Update(claim *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error)
 	Delete(name string) error
 	Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error)
 }
@@ -51,14 +51,12 @@ func newPersistentVolumeClaims(c *Client, namespace string) *persistentVolumeCla
 	return &persistentVolumeClaims{c, namespace}
 }
 
-// List takes a selector, and returns the list of replication controllers that match that selector.
 func (c *persistentVolumeClaims) List(selector labels.Selector) (result *api.PersistentVolumeClaimList, err error) {
 	result = &api.PersistentVolumeClaimList{}
 	err = c.r.Get().Namespace(c.ns).Resource("persistentVolumeClaims").SelectorParam("labels", selector).Do().Into(result)
 	return
 }
 
-// Get returns information about a particular replication controller.
 func (c *persistentVolumeClaims) Get(name string) (result *api.PersistentVolumeClaim, err error) {
 	if len(name) == 0 {
 		return nil, errors.New("name is required parameter to Get")
@@ -69,30 +67,26 @@ func (c *persistentVolumeClaims) Get(name string) (result *api.PersistentVolumeC
 	return
 }
 
-// Create creates a new replication controller.
-func (c *persistentVolumeClaims) Create(controller *api.PersistentVolumeClaim) (result *api.PersistentVolumeClaim, err error) {
+func (c *persistentVolumeClaims) Create(claim *api.PersistentVolumeClaim) (result *api.PersistentVolumeClaim, err error) {
 	result = &api.PersistentVolumeClaim{}
-	err = c.r.Post().Namespace(c.ns).Resource("persistentVolumeClaims").Body(controller).Do().Into(result)
+	err = c.r.Post().Namespace(c.ns).Resource("persistentVolumeClaims").Body(claim).Do().Into(result)
 	return
 }
 
-// Update updates an existing replication controller.
-func (c *persistentVolumeClaims) Update(controller *api.PersistentVolumeClaim) (result *api.PersistentVolumeClaim, err error) {
+func (c *persistentVolumeClaims) Update(claim *api.PersistentVolumeClaim) (result *api.PersistentVolumeClaim, err error) {
 	result = &api.PersistentVolumeClaim{}
-	if len(controller.ResourceVersion) == 0 {
-		err = fmt.Errorf("invalid update object, missing resource version: %v", controller)
+	if len(claim.ResourceVersion) == 0 {
+		err = fmt.Errorf("invalid update object, missing resource version: %v", claim)
 		return
 	}
-	err = c.r.Put().Namespace(c.ns).Resource("persistentVolumeClaims").Name(controller.Name).Body(controller).Do().Into(result)
+	err = c.r.Put().Namespace(c.ns).Resource("persistentVolumeClaims").Name(claim.Name).Body(claim).Do().Into(result)
 	return
 }
 
-// Delete deletes an existing replication controller.
 func (c *persistentVolumeClaims) Delete(name string) error {
 	return c.r.Delete().Namespace(c.ns).Resource("persistentVolumeClaims").Name(name).Do().Error()
 }
 
-// Watch returns a watch.Interface that watches the requested controllers.
 func (c *persistentVolumeClaims) Watch(label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
