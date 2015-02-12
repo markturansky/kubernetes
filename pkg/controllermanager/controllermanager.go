@@ -33,6 +33,7 @@ import (
 	replicationControllerPkg "github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/healthz"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/hyperkube"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/petco"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/petco"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota"
