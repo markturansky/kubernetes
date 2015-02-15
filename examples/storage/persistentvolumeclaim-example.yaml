@@ -1,0 +1,27 @@
+name: mypsc00001
+kind: PersistentVolumeClaim
+namespace: myns
+apiVersion: v1beta3
+spec:
+  accessModes:
+    rwo:
+  resources:
+    size: 10G
+
+#
+#{
+#  "kind":"PersistentVolumeClaim",
+#  "apiVersion":"v1beta3",
+#  "metadata":{
+#    "name":"claim01",
+#    "namespace":"myns",
+#    "creationTimestamp":null
+#  },
+#  "spec":{
+#    "accessModes":{"always":{}},
+#    "resources":{"size":"10G"}},
+#  "status":{
+#    "AccessModes":{},
+#    "Resources":null,
+#    "PersistentVolumeReference":null}
+#}

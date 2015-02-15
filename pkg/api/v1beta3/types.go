@@ -274,9 +274,9 @@ type ReadWriteMany struct{}
 type AccessModeType struct {
 	// Any of these access modes may be be specified.
 	// If none are specified, the default is ReadWriteOnce
-	ReadWriteOnce *ReadWriteOnce `json:"always,omitempty"`
-	ReadOnlyMany  *ReadOnlyMany  `json:"onFailure,omitempty"`
-	ReadWriteMany *ReadWriteMany `json:"never,omitempty"`
+	ReadWriteOnce *ReadWriteOnce `json:"rwo,omitempty"`
+	ReadOnlyMany  *ReadOnlyMany  `json:"rox,omitempty"`
+	ReadWriteMany *ReadWriteMany `json:"rwx,omitempty"`
 }
 
 type StoragePhase string

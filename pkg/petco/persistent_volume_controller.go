@@ -114,18 +114,23 @@ func (controller *PersistentVolumeController) syncPersistentVolume(obj interface
 		controller.volumeIndex.Add(volume)
 	}
 
+	fmt.Println("hello world!")
+
 	// verify the volume is still claimed by a user
 	if volume.Status.PersistentVolumeClaimReference != nil {
-		if claim, exists, _ := controller.claimStore.Get(volume.Status.PersistentVolumeClaimReference); exists {
-			glog.V(5).Infof("has a bound claim!! %+v\n", claim)
+		if _, exists, _ := controller.claimStore.Get(volume.Status.PersistentVolumeClaimReference); exists {
+			glog.V(5).Infof("%s has a bound claim", volume.Name)
 		} else {
 			//claim was deleted by user.
+			glog.V(5).Infof("Unbinding claim for volume: %s\n", volume.Name)
 			volume.Status.PersistentVolumeClaimReference = nil
 			controller.client.UpdateVolume(volume)
 		}
 	}
 
-	return obj, nil
+	fmt.Println("goodbye world")
+
+	return volume, nil
 }
 
 func (controller *PersistentVolumeController) syncPersistentVolumeClaim(obj interface{}) (interface{}, error) {
@@ -150,8 +155,8 @@ func (controller *PersistentVolumeController) syncPersistentVolumeClaim(obj inte
 			volume.Status.PersistentVolumeClaimReference = claimRef
 			claim.Status.PersistentVolumeReference = volumeRef
 
-			controller.client.UpdateClaim(claim)
 			controller.client.UpdateVolume(volume)
+			controller.client.UpdateClaim(claim)
 		}
 	}
 

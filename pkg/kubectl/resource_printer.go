@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/petco"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
@@ -225,8 +226,8 @@ var eventColumns = []string{"FIRSTSEEN", "LASTSEEN", "COUNT", "NAME", "KIND", "S
 var limitRangeColumns = []string{"NAME"}
 var resourceQuotaColumns = []string{"NAME"}
 var namespaceColumns = []string{"NAME", "LABELS"}
-var persistentVolumeColumns = []string{"NAME"}
-var persistentVolumeClaimColumns = []string{"NAME"}
+var persistentVolumeColumns = []string{"NAME", "LABELS", "CAPACITY", "ACCESSMODES", "STATUS", "CLAIM"}
+var persistentVolumeClaimColumns = []string{"NAME","LABELS", "STATUS", "VOLUME"}
 
 // addDefaultHandlers adds print handlers for default Kubernetes types.
 func (h *HumanReadablePrinter) addDefaultHandlers() {
@@ -422,8 +423,18 @@ func printMinionList(list *api.NodeList, w io.Writer) error {
 	return nil
 }
 
-func printPersistentVolume(persistentvolume *api.PersistentVolume, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\n", persistentvolume.Name)
+func printPersistentVolume(pv *api.PersistentVolume, w io.Writer) error {
+	claimRefUID := ""
+	if pv.Status.PersistentVolumeClaimReference != nil {
+		claimRefUID += pv.Status.PersistentVolumeClaimReference.Name
+		claimRefUID += " / "
+		claimRefUID += string(pv.Status.PersistentVolumeClaimReference.UID)
+	}
+
+	modes := petco.GetAccessModeType(pv.Spec.Source)
+	modesStr := petco.GetAccessModesAsString(modes)
+
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", pv.Name, pv.Labels, pv.Spec.Capacity, modesStr,  pv.Status.Phase, claimRefUID)
 	return err
 }
 
@@ -436,8 +447,12 @@ func printPersistentVolumeList(list *api.PersistentVolumeList, w io.Writer) erro
 	return nil
 }
 
-func printPersistentVolumeClaim(persistentvolumeclaim *api.PersistentVolumeClaim, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\n", persistentvolumeclaim.Name)
+func printPersistentVolumeClaim(pvc *api.PersistentVolumeClaim, w io.Writer) error {
+	volumeRefUID := ""
+	if pvc.Status.PersistentVolumeReference != nil {
+		volumeRefUID = string(pvc.Status.PersistentVolumeReference.UID)
+	}
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", pvc.Name, pvc.Labels, pvc.Status.Phase, volumeRefUID)
 	return err
 }
 

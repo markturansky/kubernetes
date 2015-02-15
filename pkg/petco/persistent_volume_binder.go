@@ -74,7 +74,7 @@ func (binder *genericPersistentVolumeIndex) Match(claim *api.PersistentVolumeCla
 	for _, v := range volumes {
 		qty := v.Spec.Capacity[api.ResourceSize]
 		glog.V(5).Infof("found size %s\n", qty.Value())
-		if qty.Value() >= desiredSize {
+		if qty.Value() >= desiredSize && v.Status.PersistentVolumeClaimReference == nil {
 			return v
 		}
 	}
@@ -131,7 +131,7 @@ func GetAccessModesAsString(modes api.AccessModeType) string {
 // would this be better on api.VolumeSource?
 func GetAccessModeType(source api.VolumeSource) api.AccessModeType {
 
-	if source.AWSElasticBlockStore != nil {
+	if source.AWSElasticBlockStore != nil || source.HostPath != nil {
 		return api.AccessModeType{
 			ReadWriteOnce: &api.ReadWriteOnce{},
 		}

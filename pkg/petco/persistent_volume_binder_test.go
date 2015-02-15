@@ -67,7 +67,7 @@ func TestMatchVolume(t *testing.T) {
 	for _, pv := range createTestVolumes() {
 		binder.Add(pv)
 		if !binder.Exists(pv) {
-			t.Errorf("Expected to find persistent volume in binder")
+			t.Errorf("Expected to find persistent volume in binder: %+v", pv)
 		}
 	}
 
@@ -89,7 +89,7 @@ func TestMatchVolume(t *testing.T) {
 
 	volume := binder.Match(claim)
 
-	if volume == nil || volume.UID != "ghi" {
+	if volume == nil || volume.UID != "gce-pd-10" {
 		t.Errorf("Expected GCE disk of size 10G, received: %+v", volume)
 	}
 
@@ -110,8 +110,32 @@ func TestMatchVolume(t *testing.T) {
 
 	volume = binder.Match(claim)
 
-	if volume == nil || volume.UID != "yz" {
+	if volume == nil || volume.UID != "aws-ebs-10" {
 		t.Errorf("Expected AWS block store of size 10G, received: %+v", volume)
+	}
+
+	// a volume matching this claim exists in the index but is already bound to another claim
+	claim = &api.PersistentVolumeClaim{
+		ObjectMeta: api.ObjectMeta{
+			Name:      "claim01",
+			Namespace: "myns",
+		},
+		Spec: api.PersistentVolumeClaimSpec{
+			AccessModes: api.AccessModeType{
+				ReadWriteOnce: &api.ReadWriteOnce{},
+				ReadOnlyMany:  &api.ReadOnlyMany{},
+				ReadWriteMany: &api.ReadWriteMany{},
+			},
+			Resources: api.ResourceList{
+				api.ResourceName(api.ResourceSize): resource.MustParse("50G"),
+			},
+		},
+	}
+
+	volume = binder.Match(claim)
+
+	if volume != nil {
+		t.Errorf("Unexpected non-nil volume: %+v", volume)
 	}
 
 }
@@ -122,16 +146,16 @@ func TestSort(t *testing.T) {
 
 	sort.Sort(PersistentVolumeComparator(volumes))
 
-	if volumes[0].UID != "def" {
-		t.Error("Incorrect ordering of persistent volumes.  Expected 'def' first.")
+	if volumes[0].UID != "gce-pd-1" {
+		t.Error("Incorrect ordering of persistent volumes.  Expected 'gce-pd-1' first.")
 	}
 
-	if volumes[1].UID != "abc" {
-		t.Error("Incorrect ordering of persistent volumes.  Expected 'abc' second.")
+	if volumes[1].UID != "gce-pd-5" {
+		t.Error("Incorrect ordering of persistent volumes.  Expected 'gce-pd-5' second.")
 	}
 
-	if volumes[2].UID != "ghi" {
-		t.Error("Incorrect ordering of persistent volumes.  Expected 'ghi' last.")
+	if volumes[2].UID != "gce-pd-10" {
+		t.Error("Incorrect ordering of persistent volumes.  Expected 'gce-pd-10' last.")
 	}
 }
 
@@ -139,7 +163,7 @@ func createTestVolumes() []*api.PersistentVolume {
 	return []*api.PersistentVolume{
 		{
 			ObjectMeta: api.ObjectMeta{
-				UID: "abc",
+				UID: "gce-pd-5",
 			},
 			Spec: api.PersistentVolumeSpec{
 				Capacity: api.ResourceList{
@@ -152,7 +176,7 @@ func createTestVolumes() []*api.PersistentVolume {
 		},
 		{
 			ObjectMeta: api.ObjectMeta{
-				UID: "def",
+				UID: "gce-pd-1",
 			},
 			Spec: api.PersistentVolumeSpec{
 				Capacity: api.ResourceList{
@@ -165,7 +189,7 @@ func createTestVolumes() []*api.PersistentVolume {
 		},
 		{
 			ObjectMeta: api.ObjectMeta{
-				UID: "ghi",
+				UID: "gce-pd-10",
 			},
 			Spec: api.PersistentVolumeSpec{
 				Capacity: api.ResourceList{
@@ -178,7 +202,7 @@ func createTestVolumes() []*api.PersistentVolume {
 		},
 		{
 			ObjectMeta: api.ObjectMeta{
-				UID: "jkl",
+				UID: "nfs-5",
 			},
 			Spec: api.PersistentVolumeSpec{
 				Capacity: api.ResourceList{
@@ -191,7 +215,7 @@ func createTestVolumes() []*api.PersistentVolume {
 		},
 		{
 			ObjectMeta: api.ObjectMeta{
-				UID: "mno",
+				UID: "nfs-1",
 			},
 			Spec: api.PersistentVolumeSpec{
 				Capacity: api.ResourceList{
@@ -204,7 +228,7 @@ func createTestVolumes() []*api.PersistentVolume {
 		},
 		{
 			ObjectMeta: api.ObjectMeta{
-				UID: "pqr",
+				UID: "nfs-10",
 			},
 			Spec: api.PersistentVolumeSpec{
 				Capacity: api.ResourceList{
@@ -217,7 +241,23 @@ func createTestVolumes() []*api.PersistentVolume {
 		},
 		{
 			ObjectMeta: api.ObjectMeta{
-				UID: "stu",
+				UID: "nfs-50-bound",
+			},
+			Spec: api.PersistentVolumeSpec{
+				Capacity: api.ResourceList{
+					api.ResourceName(api.ResourceSize): resource.MustParse("50G"),
+				},
+				Source: api.VolumeSource{
+					NFSMount: &api.NFSMount{},
+				},
+			},
+			Status: api.PersistentVolumeStatus{
+				PersistentVolumeClaimReference: &api.ObjectReference{ UID: "abc123" },
+			},
+		},
+		{
+			ObjectMeta: api.ObjectMeta{
+				UID: "aws-ebs-5",
 			},
 			Spec: api.PersistentVolumeSpec{
 				Capacity: api.ResourceList{
@@ -230,7 +270,7 @@ func createTestVolumes() []*api.PersistentVolume {
 		},
 		{
 			ObjectMeta: api.ObjectMeta{
-				UID: "vwx",
+				UID: "aws-ebs-1",
 			},
 			Spec: api.PersistentVolumeSpec{
 				Capacity: api.ResourceList{
@@ -243,7 +283,7 @@ func createTestVolumes() []*api.PersistentVolume {
 		},
 		{
 			ObjectMeta: api.ObjectMeta{
-				UID: "yz",
+				UID: "aws-ebs-10",
 			},
 			Spec: api.PersistentVolumeSpec{
 				Capacity: api.ResourceList{

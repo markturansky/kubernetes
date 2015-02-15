@@ -1,0 +1,21 @@
+{
+    "kind": "PersistentVolumeClaim",
+    "apiVersion": "v1beta3",
+    "metadata": {
+        "name": "claim01",
+        "namespace": "myns",
+        "creationTimestamp": null
+    }, "spec": {
+        "accessModes": {
+            "rwo": {},
+            "rox": {}
+        },
+        "resources": {
+            "size": "10G"
+        }
+    }, "status": {
+        "AccessModes": {},
+        "Resources": null,
+        "PersistentVolumeReference": null
+    }
+}
