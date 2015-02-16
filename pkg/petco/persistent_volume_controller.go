@@ -19,22 +19,22 @@ import (
 	"sync"
 	"time"
 
+	"fmt"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/golang/glog"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	"fmt"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	"github.com/golang/glog"
 )
 
 // PersistentVolumeController is responsible for tracking volumes in the system
 type PersistentVolumeController struct {
 	volumeStore cache.Store
-	claimStore 	cache.Store
-	client 		persistentVolumeControllerClient
+	claimStore  cache.Store
+	client      persistentVolumeControllerClient
 	volumeIndex PersistentVolumeIndex
 }
 
@@ -42,19 +42,19 @@ type PersistentVolumeController struct {
 func NewPersistentVolumeController(kubeClient client.Interface) *PersistentVolumeController {
 
 	pvListWatcher := &ListWatcherImpl{
-		ListFunc: func()(runtime.Object, error){
+		ListFunc: func() (runtime.Object, error) {
 			return kubeClient.PersistentVolumes(api.NamespaceAll).List(labels.Everything())
 		},
-		WatchFunc: func(resourceVersion string)(watch.Interface, error){
+		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
 			return kubeClient.PersistentVolumes(api.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
 		},
 	}
 
 	pvcListWatcher := &ListWatcherImpl{
-		ListFunc: func()(runtime.Object, error){
+		ListFunc: func() (runtime.Object, error) {
 			return kubeClient.PersistentVolumeClaims(api.NamespaceAll).List(labels.Everything())
 		},
-		WatchFunc: func(resourceVersion string)(watch.Interface, error){
+		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
 			return kubeClient.PersistentVolumeClaims(api.NamespaceAll).Watch(labels.Everything(), labels.Everything(), resourceVersion)
 		},
 	}
@@ -65,24 +65,23 @@ func NewPersistentVolumeController(kubeClient client.Interface) *PersistentVolum
 	cache.NewReflector(pvcListWatcher, &api.PersistentVolumeClaim{}, claimStore).Run()
 
 	client := &persistentVolumeControllerClientImpl{
-		UpdateVolumeFunc: func(volume *api.PersistentVolume)(*api.PersistentVolume, error){
+		UpdateVolumeFunc: func(volume *api.PersistentVolume) (*api.PersistentVolume, error) {
 			return kubeClient.PersistentVolumes(api.NamespaceDefault).Update(volume)
 		},
-		UpdateClaimFunc: func(claim *api.PersistentVolumeClaim)(*api.PersistentVolumeClaim, error){
+		UpdateClaimFunc: func(claim *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error) {
 			return kubeClient.PersistentVolumeClaims(claim.Namespace).Update(claim)
 		},
 	}
 
 	controller := &PersistentVolumeController{
 		volumeStore: volumeStore,
-		claimStore: claimStore,
-		client: client,
+		claimStore:  claimStore,
+		client:      client,
 		volumeIndex: NewPersistentVolumeIndex(),
 	}
 
 	return controller
 }
-
 
 func (controller *PersistentVolumeController) Run(period time.Duration) {
 	glog.V(5).Infof("Starting PersistentVolumeController\n")
@@ -92,13 +91,13 @@ func (controller *PersistentVolumeController) Run(period time.Duration) {
 func (controller *PersistentVolumeController) synchronize() {
 	glog.V(5).Infof("Beginning persistent volume controller sync\n")
 
-	volumeReconciler := Reconciler {
-		ListFunc: controller.volumeStore.List,
+	volumeReconciler := Reconciler{
+		ListFunc:      controller.volumeStore.List,
 		ReconcileFunc: controller.syncPersistentVolume,
 	}
 
-	claimsReconciler := Reconciler {
-		ListFunc: controller.claimStore.List,
+	claimsReconciler := Reconciler{
+		ListFunc:      controller.claimStore.List,
 		ReconcileFunc: controller.syncPersistentVolumeClaim,
 	}
 
@@ -106,18 +105,12 @@ func (controller *PersistentVolumeController) synchronize() {
 	glog.V(5).Infof("Exiting persistent volume controller sync\n")
 }
 
-
-
-
-
-
 func (controller *PersistentVolumeController) syncPersistentVolume(obj interface{}) (interface{}, error) {
 	volume := obj.(*api.PersistentVolume)
 	glog.V(5).Infof("Synchronizing persistent volume: %+v\n", obj)
 
-
 	// bring all newly found volumes under management
-	if !controller.volumeIndex.Exists(volume){
+	if !controller.volumeIndex.Exists(volume) {
 		controller.volumeIndex.Add(volume)
 	}
 
@@ -135,11 +128,9 @@ func (controller *PersistentVolumeController) syncPersistentVolume(obj interface
 	return obj, nil
 }
 
-
 func (controller *PersistentVolumeController) syncPersistentVolumeClaim(obj interface{}) (interface{}, error) {
 	claim := obj.(*api.PersistentVolumeClaim)
 	glog.V(5).Infof("Synchronizing persistent volume claim: %v\n", obj)
-
 
 	if claim.Status.PersistentVolumeReference == nil {
 
@@ -167,16 +158,15 @@ func (controller *PersistentVolumeController) syncPersistentVolumeClaim(obj inte
 	return obj, nil
 }
 
-
 //
 // generic Reconciler & reconciliation loop, because we're reconciling two Kinds in this controller
 //
 type Reconciler struct {
-	ListFunc	func() []interface{}
+	ListFunc      func() []interface{}
 	ReconcileFunc func(interface{}) (interface{}, error)
 }
 
-func (controller *PersistentVolumeController) reconcile(reconcilers ...Reconciler ){
+func (controller *PersistentVolumeController) reconcile(reconcilers ...Reconciler) {
 
 	for _, reconciler := range reconcilers {
 
@@ -205,7 +195,6 @@ func (controller *PersistentVolumeController) reconcile(reconcilers ...Reconcile
 	}
 }
 
-
 //
 // decouple kubeClient from the controller by wrapping it in a narrow, private interface
 //
@@ -216,17 +205,16 @@ type persistentVolumeControllerClient interface {
 
 type persistentVolumeControllerClientImpl struct {
 	UpdateVolumeFunc func(volume *api.PersistentVolume) (*api.PersistentVolume, error)
-	UpdateClaimFunc func(volume *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error)
+	UpdateClaimFunc  func(volume *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error)
 }
 
-func (i *persistentVolumeControllerClientImpl) UpdateVolume(volume *api.PersistentVolume) (*api.PersistentVolume, error){
+func (i *persistentVolumeControllerClientImpl) UpdateVolume(volume *api.PersistentVolume) (*api.PersistentVolume, error) {
 	return i.UpdateVolumeFunc(volume)
 }
 
-func (i *persistentVolumeControllerClientImpl) UpdateClaim(claim *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error){
+func (i *persistentVolumeControllerClientImpl) UpdateClaim(claim *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error) {
 	return i.UpdateClaimFunc(claim)
 }
-
 
 //
 // generic pattern for ListWatcher rather than creating a new ListWatcher impl for each Kind I want to watch

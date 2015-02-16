@@ -45,7 +45,4 @@ func (es mockScheduler) Schedule(pod api.Pod, ml scheduler.MinionLister) (string
 
 func TestVolumeController(t *testing.T) {
 
-
 }
-
-

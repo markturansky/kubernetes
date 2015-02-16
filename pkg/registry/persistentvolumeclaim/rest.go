@@ -22,7 +22,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -53,7 +52,7 @@ func (*REST) NewList() runtime.Object {
 	return &api.PersistentVolumeClaimList{}
 }
 
-func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
+func (rs *REST) Create(ctx api.Context, obj runtime.Object) (runtime.Object, error) {
 	persistentvolumeclaim, ok := obj.(*api.PersistentVolumeClaim)
 	if !ok {
 		return nil, fmt.Errorf("invalid object type")
@@ -65,20 +64,32 @@ func (rs *REST) Create(ctx api.Context, obj runtime.Object) (<-chan apiserver.RE
 
 	api.FillObjectMetaSystemFields(ctx, &persistentvolumeclaim.ObjectMeta)
 	if errs := validation.ValidatePersistentVolumeClaim(persistentvolumeclaim); len(errs) > 0 {
-		return nil, errors.NewInvalid("persistentvolumeclaim", persistentvolumeclaim.Name, errs)
+		return nil, errors.NewInvalid("persistentVolumeClaim", persistentvolumeclaim.Name, errs)
 	}
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := rs.registry.Create(ctx, persistentvolumeclaim.Name, persistentvolumeclaim); err != nil {
-			return nil, err
-		}
-		return rs.registry.Get(ctx, persistentvolumeclaim.Name)
-	}), nil
+	err := rs.registry.CreateWithName(ctx, persistentvolumeclaim.Name, persistentvolumeclaim)
+	if err != nil {
+		return nil, err
+	}
+
+	return rs.registry.Get(ctx, persistentvolumeclaim.Name)
 }
 
-func (rs *REST) Delete(ctx api.Context, id string) (<-chan apiserver.RESTResult, error) {
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		return &api.Status{Status: api.StatusSuccess}, rs.registry.Delete(ctx, id)
-	}), nil
+func (rs *REST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	persistentvolumeclaim, ok := obj.(*api.PersistentVolumeClaim)
+	if !ok {
+		return nil, false, fmt.Errorf("invalid object type")
+	}
+	if !api.ValidNamespace(ctx, &persistentvolumeclaim.ObjectMeta) {
+		return nil, false, errors.NewConflict("persistentVolumeClaim", persistentvolumeclaim.Namespace, fmt.Errorf("PersistentStorageController.Namespace does not match the provided context"))
+	}
+	if errs := validation.ValidatePersistentVolumeClaim(persistentvolumeclaim); len(errs) > 0 {
+		return nil, false, errors.NewInvalid("persistentVolumeClaim", persistentvolumeclaim.Name, errs)
+	}
+	if err := rs.registry.UpdateWithName(ctx, persistentvolumeclaim.Name, persistentvolumeclaim); err != nil {
+		return nil, false, err
+	}
+	out, err := rs.registry.Get(ctx, persistentvolumeclaim.Name)
+	return out, false, err
 }
 
 func (rs *REST) Get(ctx api.Context, id string) (runtime.Object, error) {
@@ -86,10 +97,24 @@ func (rs *REST) Get(ctx api.Context, id string) (runtime.Object, error) {
 	if err != nil {
 		return persistentvolumeclaim, err
 	}
-	if persistentvolumeclaim == nil {
-		return persistentvolumeclaim, nil
+	_, ok := persistentvolumeclaim.(*api.PersistentVolumeClaim)
+	if !ok {
+		return nil, fmt.Errorf("invalid object type")
 	}
 	return persistentvolumeclaim, err
+}
+
+func (rs *REST) Delete(ctx api.Context, id string) (runtime.Object, error) {
+	obj, err := rs.registry.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	_, ok := obj.(*api.PersistentVolumeClaim)
+	if !ok {
+		return nil, fmt.Errorf("invalid object type")
+	}
+	return rs.registry.Delete(ctx, id)
 }
 
 func (rs *REST) getAttrs(obj runtime.Object) (objLabels, objFields labels.Set, err error) {
@@ -102,20 +127,4 @@ func (rs *REST) List(ctx api.Context, label, field labels.Selector) (runtime.Obj
 
 func (rs *REST) Watch(ctx api.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return rs.registry.Watch(ctx, &generic.SelectionPredicate{label, field, rs.getAttrs}, resourceVersion)
-}
-
-func (rs *REST) Update(ctx api.Context, obj runtime.Object) (<-chan apiserver.RESTResult, error) {
-	persistentvolumeclaim := obj.(*api.PersistentVolumeClaim)
-	if !api.ValidNamespace(ctx, &persistentvolumeclaim.ObjectMeta) {
-		return nil, errors.NewConflict("persistentvolumeclaim", persistentvolumeclaim.Namespace, fmt.Errorf("PersistentStorageController.Namespace does not match the provided context"))
-	}
-	if errs := validation.ValidatePersistentVolumeClaim(persistentvolumeclaim); len(errs) > 0 {
-		return nil, errors.NewInvalid("persistentvolumeclaim", persistentvolumeclaim.Name, errs)
-	}
-	return apiserver.MakeAsync(func() (runtime.Object, error) {
-		if err := rs.registry.Update(ctx, persistentvolumeclaim.Name, persistentvolumeclaim); err != nil {
-			return nil, err
-		}
-		return rs.registry.Get(ctx, persistentvolumeclaim.Name)
-	}), nil
 }

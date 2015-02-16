@@ -27,8 +27,8 @@ import (
 func TestAccessModes(t *testing.T) {
 
 	tests := []struct {
-		expected		string
-		volumeSource	api.VolumeSource
+		expected     string
+		volumeSource api.VolumeSource
 	}{
 		{
 			expected: "RWO",
@@ -62,7 +62,7 @@ func TestAccessModes(t *testing.T) {
 	}
 }
 
-func TestMatchVolume(t *testing.T){
+func TestMatchVolume(t *testing.T) {
 	binder := NewPersistentVolumeIndex()
 	for _, pv := range createTestVolumes() {
 		binder.Add(pv)
@@ -73,11 +73,11 @@ func TestMatchVolume(t *testing.T){
 
 	claim := &api.PersistentVolumeClaim{
 		ObjectMeta: api.ObjectMeta{
-			Name: "claim01",
+			Name:      "claim01",
 			Namespace: "myns",
 		},
 		Spec: api.PersistentVolumeClaimSpec{
-			AccessModes: api.AccessModeType {
+			AccessModes: api.AccessModeType{
 				ReadWriteOnce: &api.ReadWriteOnce{},
 				ReadOnlyMany:  &api.ReadOnlyMany{},
 			},
@@ -93,14 +93,13 @@ func TestMatchVolume(t *testing.T){
 		t.Errorf("Expected GCE disk of size 10G, received: %+v", volume)
 	}
 
-
 	claim = &api.PersistentVolumeClaim{
 		ObjectMeta: api.ObjectMeta{
-			Name: "claim01",
+			Name:      "claim01",
 			Namespace: "myns",
 		},
 		Spec: api.PersistentVolumeClaimSpec{
-			AccessModes: api.AccessModeType {
+			AccessModes: api.AccessModeType{
 				ReadWriteOnce: &api.ReadWriteOnce{},
 			},
 			Resources: api.ResourceList{
@@ -117,7 +116,7 @@ func TestMatchVolume(t *testing.T){
 
 }
 
-func TestSort(t *testing.T){
+func TestSort(t *testing.T) {
 	volumes := createTestVolumes()
 	volumes = volumes[0:3]
 
@@ -135,7 +134,6 @@ func TestSort(t *testing.T){
 		t.Error("Incorrect ordering of persistent volumes.  Expected 'ghi' last.")
 	}
 }
-
 
 func createTestVolumes() []*api.PersistentVolume {
 	return []*api.PersistentVolume{
@@ -258,5 +256,3 @@ func createTestVolumes() []*api.PersistentVolume {
 		},
 	}
 }
-
-

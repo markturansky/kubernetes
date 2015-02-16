@@ -218,11 +218,11 @@ type PersistentVolume struct {
 
 type PersistentVolumeSpec struct {
 	Capacity ResourceList `json:"capacity,omitempty`
-	Source	VolumeSource `json:"source,omitempty"`
+	Source   VolumeSource `json:"source,omitempty"`
 }
 
 type PersistentVolumeStatus struct {
-	Phase       StoragePhase    `json:"phase,omitempty"`
+	Phase                          StoragePhase     `json:"phase,omitempty"`
 	PersistentVolumeClaimReference *ObjectReference `json:persistentVolumeClaimReference,omitempty`
 }
 
@@ -255,20 +255,20 @@ type PersistentVolumeClaimList struct {
 // and allows a Source for provider-specific attributes
 type PersistentVolumeClaimSpec struct {
 	// Contains the types of access modes desired
-	AccessModes AccessModeType `json:"accessModes,omitempty"`
-	Resources ResourceList `json:"resources,omitempty"`
+	AccessModes              AccessModeType    `json:"accessModes,omitempty"`
+	Resources                ResourceList      `json:"resources,omitempty"`
 	PersistentVolumeSelector map[string]string `json:"selector,omitempty"`
 }
 
 type PersistentVolumeClaimStatus struct {
-	Phase StoragePhase `json:"phase,omitempty"`
-	AccessModes AccessModeType
-	Resources ResourceList
+	Phase                     StoragePhase `json:"phase,omitempty"`
+	AccessModes               AccessModeType
+	Resources                 ResourceList
 	PersistentVolumeReference *ObjectReference
 }
 
 type ReadWriteOnce struct{}
-type ReadOnlyMany struct {}
+type ReadOnlyMany struct{}
 type ReadWriteMany struct{}
 
 type AccessModeType struct {
@@ -292,7 +292,7 @@ const (
 )
 
 type PersistentVolumeClaimAttachment struct {
-	AccessMode AccessModeType `json:accessMode,omitempty`
+	AccessMode                     AccessModeType   `json:accessMode,omitempty`
 	PersistentVolumeClaimReference *ObjectReference `json:persistentVolumeClaimReference,omitempty`
 }
 
@@ -306,6 +306,7 @@ type NFSMount struct {
 	SourcePath   string `json:"sourcePath"`
 	MountOptions string `json:"mountOptions"`
 }
+
 // HostPath represents bare host directory volume.
 type HostPath struct {
 	Path string `json:"path"`
@@ -947,9 +948,9 @@ const (
 	// CPU, in cores. (500m = .5 cores)
 	ResourceCPU ResourceName = "cpu"
 	// Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-	ResourceMemory ResourceName = "memory"
-	ResourceSize ResourceName = "size"
-	ResourceIOPS ResourceName = "iops"
+	ResourceMemory  ResourceName = "memory"
+	ResourceSize    ResourceName = "size"
+	ResourceIOPS    ResourceName = "iops"
 	ResourceThrough ResourceName = "throughput"
 )
 

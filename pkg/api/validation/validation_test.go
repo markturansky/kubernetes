@@ -145,7 +145,7 @@ func TestValidateAnnotations(t *testing.T) {
 	}
 }
 
-func testVolume(name string, namespace string) *api.PersistentVolume{
+func testVolume(name string, namespace string) *api.PersistentVolume {
 
 	objMeta := api.ObjectMeta{Name: name}
 	if namespace != "" {
@@ -154,23 +154,23 @@ func testVolume(name string, namespace string) *api.PersistentVolume{
 
 	return &api.PersistentVolume{
 		ObjectMeta: objMeta,
-		Spec: api.PersistentVolumeSpec{},
+		Spec:       api.PersistentVolumeSpec{},
 	}
 }
 
-func TestValidatePersistentVolumes(t *testing.T){
+func TestValidatePersistentVolumes(t *testing.T) {
 
-	scenarios := map[string]struct{
+	scenarios := map[string]struct {
 		isExpectedFailure bool
-		volume *api.PersistentVolume
+		volume            *api.PersistentVolume
 	}{
 		"good-volume": {
 			isExpectedFailure: false,
-			volume: testVolume("foo", ""),
+			volume:            testVolume("foo", ""),
 		},
 		"bad-volume": {
 			isExpectedFailure: true,
-			volume: testVolume("foo", "unexpected-namespace"),
+			volume:            testVolume("foo", "unexpected-namespace"),
 		},
 	}
 
@@ -183,26 +183,26 @@ func TestValidatePersistentVolumes(t *testing.T){
 
 }
 
-func testVolumeClaim(name string, namespace string) *api.PersistentVolumeClaim{
+func testVolumeClaim(name string, namespace string) *api.PersistentVolumeClaim {
 	return &api.PersistentVolumeClaim{
 		ObjectMeta: api.ObjectMeta{Name: name, Namespace: namespace},
-		Spec: api.PersistentVolumeClaimSpec{},
+		Spec:       api.PersistentVolumeClaimSpec{},
 	}
 }
 
-func TestValidatePersistentVolumeClaim(t *testing.T){
+func TestValidatePersistentVolumeClaim(t *testing.T) {
 
-	scenarios := map[string]struct{
+	scenarios := map[string]struct {
 		isExpectedFailure bool
-		claim *api.PersistentVolumeClaim
+		claim             *api.PersistentVolumeClaim
 	}{
 		"good-claim": {
 			isExpectedFailure: true,
-			claim: testVolumeClaim("foo", ""),
+			claim:             testVolumeClaim("foo", ""),
 		},
 		"bad-claim": {
 			isExpectedFailure: false,
-			claim: testVolumeClaim("foo", "valid-namespace"),
+			claim:             testVolumeClaim("foo", "valid-namespace"),
 		},
 	}
 

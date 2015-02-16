@@ -201,11 +201,11 @@ type PersistentVolume struct {
 type PersistentVolumeSpec struct {
 	Capacity ResourceList `json:"capacity,omitempty`
 	// AccessModeTypes are inferred from the Source
-	Source	VolumeSource `json:"source,omitempty"`
+	Source VolumeSource `json:"source,omitempty"`
 }
 
 type PersistentVolumeStatus struct {
-	Phase       StoragePhase    `json:"phase,omitempty"`
+	Phase                          StoragePhase     `json:"phase,omitempty"`
 	PersistentVolumeClaimReference *ObjectReference `json:persistentVolumeClaimReference,omitempty`
 }
 
@@ -238,20 +238,20 @@ type PersistentVolumeClaimList struct {
 // and allows a Source for provider-specific attributes
 type PersistentVolumeClaimSpec struct {
 	// Contains the types of access modes desired
-	AccessModes AccessModeType `json:"accessModes,omitempty"`
-	Resources ResourceList `json:"resources,omitempty"`
+	AccessModes              AccessModeType    `json:"accessModes,omitempty"`
+	Resources                ResourceList      `json:"resources,omitempty"`
 	PersistentVolumeSelector map[string]string `json:"selector,omitempty"`
 }
 
 type PersistentVolumeClaimStatus struct {
-	Phase StoragePhase `json:"phase,omitempty"`
-	AccessModes AccessModeType
-	Resources ResourceList
+	Phase                     StoragePhase `json:"phase,omitempty"`
+	AccessModes               AccessModeType
+	Resources                 ResourceList
 	PersistentVolumeReference *ObjectReference
 }
 
 type ReadWriteOnce struct{}
-type ReadOnlyMany struct {}
+type ReadOnlyMany struct{}
 type ReadWriteMany struct{}
 
 type AccessModeType struct {
@@ -261,8 +261,6 @@ type AccessModeType struct {
 	ReadOnlyMany  *ReadOnlyMany  `json:"onFailure,omitempty"`
 	ReadWriteMany *ReadWriteMany `json:"never,omitempty"`
 }
-
-
 
 type StoragePhase string
 
@@ -277,7 +275,7 @@ const (
 )
 
 type PersistentVolumeClaimAttachment struct {
-	AccessMode AccessModeType `json:accessMode,omitempty`
+	AccessMode                     AccessModeType   `json:accessMode,omitempty`
 	PersistentVolumeClaimReference *ObjectReference `json:persistentVolumeClaimReference,omitempty`
 }
 
@@ -928,8 +926,8 @@ const (
 	// Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
 	ResourceMemory ResourceName = "memory"
 	// volume size, in gigabytes (e,g. 5)
-	ResourceSize ResourceName = "size"
-	ResourceIOPS ResourceName = "iops"
+	ResourceSize    ResourceName = "size"
+	ResourceIOPS    ResourceName = "iops"
 	ResourceThrough ResourceName = "throughput"
 )
 

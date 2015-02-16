@@ -51,8 +51,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/limitrange"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/minion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/namespace"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/persistentvolumeclaim"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/persistentvolume"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/persistentvolumeclaim"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/resourcequota"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/resourcequotausage"
@@ -119,22 +119,22 @@ type Config struct {
 // Master contains state for a Kubernetes cluster master/api server.
 type Master struct {
 	// "Inputs", Copied from Config
-	podRegistry           pod.Registry
-	controllerRegistry    controller.Registry
-	serviceRegistry       service.Registry
-	endpointRegistry      endpoint.Registry
-	minionRegistry        minion.Registry
-	bindingRegistry       binding.Registry
-	eventRegistry         generic.Registry
-	limitRangeRegistry    generic.Registry
-	resourceQuotaRegistry resourcequota.Registry
-	namespaceRegistry     generic.Registry
-	persistentVolumeRegistry        generic.Registry
+	podRegistry                   pod.Registry
+	controllerRegistry            controller.Registry
+	serviceRegistry               service.Registry
+	endpointRegistry              endpoint.Registry
+	minionRegistry                minion.Registry
+	bindingRegistry               binding.Registry
+	eventRegistry                 generic.Registry
+	limitRangeRegistry            generic.Registry
+	resourceQuotaRegistry         resourcequota.Registry
+	namespaceRegistry             generic.Registry
+	persistentVolumeRegistry      generic.Registry
 	persistentVolumeClaimRegistry generic.Registry
-	storage               map[string]apiserver.RESTStorage
-	client                *client.Client
-	portalNet             *net.IPNet
-	cacheTimeout          time.Duration
+	storage                       map[string]apiserver.RESTStorage
+	client                        *client.Client
+	portalNet                     *net.IPNet
+	cacheTimeout                  time.Duration
 
 	mux                   apiserver.Mux
 	muxHelper             *apiserver.MuxHelper
@@ -281,17 +281,17 @@ func New(c *Config) *Master {
 	glog.Infof("Setting master service IPs based on PortalNet subnet to %q (read-only) and %q (read-write).", serviceReadOnlyIP, serviceReadWriteIP)
 
 	m := &Master{
-		podRegistry:           etcd.NewRegistry(c.EtcdHelper, boundPodFactory),
-		controllerRegistry:    etcd.NewRegistry(c.EtcdHelper, nil),
-		serviceRegistry:       etcd.NewRegistry(c.EtcdHelper, nil),
-		endpointRegistry:      etcd.NewRegistry(c.EtcdHelper, nil),
-		bindingRegistry:       etcd.NewRegistry(c.EtcdHelper, boundPodFactory),
-		eventRegistry:         event.NewEtcdRegistry(c.EtcdHelper, uint64(c.EventTTL.Seconds())),
-		namespaceRegistry:     namespace.NewEtcdRegistry(c.EtcdHelper),
-		minionRegistry:        etcd.NewRegistry(c.EtcdHelper, nil),
-		limitRangeRegistry:    limitrange.NewEtcdRegistry(c.EtcdHelper),
-		resourceQuotaRegistry: resourcequota.NewEtcdRegistry(c.EtcdHelper),
-		persistentVolumeRegistry:        persistentvolume.NewEtcdRegistry(c.EtcdHelper),
+		podRegistry:                   etcd.NewRegistry(c.EtcdHelper, boundPodFactory),
+		controllerRegistry:            etcd.NewRegistry(c.EtcdHelper, nil),
+		serviceRegistry:               etcd.NewRegistry(c.EtcdHelper, nil),
+		endpointRegistry:              etcd.NewRegistry(c.EtcdHelper, nil),
+		bindingRegistry:               etcd.NewRegistry(c.EtcdHelper, boundPodFactory),
+		eventRegistry:                 event.NewEtcdRegistry(c.EtcdHelper, uint64(c.EventTTL.Seconds())),
+		namespaceRegistry:             namespace.NewEtcdRegistry(c.EtcdHelper),
+		minionRegistry:                etcd.NewRegistry(c.EtcdHelper, nil),
+		limitRangeRegistry:            limitrange.NewEtcdRegistry(c.EtcdHelper),
+		resourceQuotaRegistry:         resourcequota.NewEtcdRegistry(c.EtcdHelper),
+		persistentVolumeRegistry:      persistentvolume.NewEtcdRegistry(c.EtcdHelper),
 		persistentVolumeClaimRegistry: persistentvolumeclaim.NewEtcdRegistry(c.EtcdHelper),
 		client:                c.Client,
 		portalNet:             c.PortalNet,
@@ -407,11 +407,11 @@ func (m *Master) init(c *Config) {
 		// TODO: should appear only in scheduler API group.
 		"bindings": binding.NewREST(m.bindingRegistry),
 
-		"limitRanges":         limitrange.NewREST(m.limitRangeRegistry),
-		"resourceQuotas":      resourcequota.NewREST(m.resourceQuotaRegistry),
-		"resourceQuotaUsages": resourcequotausage.NewREST(m.resourceQuotaRegistry),
-		"namespaces":          namespace.NewREST(m.namespaceRegistry),
-		"persistentVolumes": persistentvolume.NewREST(m.persistentVolumeRegistry),
+		"limitRanges":            limitrange.NewREST(m.limitRangeRegistry),
+		"resourceQuotas":         resourcequota.NewREST(m.resourceQuotaRegistry),
+		"resourceQuotaUsages":    resourcequotausage.NewREST(m.resourceQuotaRegistry),
+		"namespaces":             namespace.NewREST(m.namespaceRegistry),
+		"persistentVolumes":      persistentvolume.NewREST(m.persistentVolumeRegistry),
 		"persistentVolumeClaims": persistentvolumeclaim.NewREST(m.persistentVolumeClaimRegistry),
 	}
 

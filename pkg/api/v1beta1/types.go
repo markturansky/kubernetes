@@ -112,7 +112,7 @@ type VolumeSource struct {
 }
 
 type PersistentVolume struct {
-	TypeMeta   `json:",inline"`
+	TypeMeta `json:",inline"`
 	//Spec defines a persistent volume owned by the cluster
 	Spec PersistentVolumeSpec `json:"spec,omitempty"`
 	// Status represents the current information about persistent volume.
@@ -121,11 +121,11 @@ type PersistentVolume struct {
 
 type PersistentVolumeSpec struct {
 	Capacity ResourceList `json:"capacity,omitempty`
-	Source	VolumeSource `json:"source,omitempty"`
+	Source   VolumeSource `json:"source,omitempty"`
 }
 
 type PersistentVolumeStatus struct {
-	Phase       StoragePhase    `json:"phase,omitempty"`
+	Phase                          StoragePhase     `json:"phase,omitempty"`
 	PersistentVolumeClaimReference *ObjectReference `json:persistentVolumeClaimReference,omitempty`
 }
 
@@ -136,7 +136,7 @@ type PersistentVolumeList struct {
 
 // a PersistentVolumeClaim is a user's request for and claim to a persistent volume
 type PersistentVolumeClaim struct {
-	TypeMeta   `json:",inline"`
+	TypeMeta `json:",inline"`
 
 	// Spec defines the volume
 	Spec PersistentVolumeClaimSpec `json:"spec,omitempty"`
@@ -155,20 +155,20 @@ type PersistentVolumeClaimList struct {
 // and allows a Source for provider-specific attributes
 type PersistentVolumeClaimSpec struct {
 	// Contains the types of access modes desired
-	AccessModes AccessModeType `json:"accessModes,omitempty"`
-	Resources ResourceList `json:"resources,omitempty"`
+	AccessModes              AccessModeType    `json:"accessModes,omitempty"`
+	Resources                ResourceList      `json:"resources,omitempty"`
 	PersistentVolumeSelector map[string]string `json:"selector,omitempty"`
 }
 
 type PersistentVolumeClaimStatus struct {
-	Phase StoragePhase `json:"phase,omitempty"`
-	AccessModes AccessModeType
-	Resources ResourceList
+	Phase                     StoragePhase `json:"phase,omitempty"`
+	AccessModes               AccessModeType
+	Resources                 ResourceList
 	PersistentVolumeReference *ObjectReference
 }
 
 type ReadWriteOnce struct{}
-type ReadOnlyMany struct {}
+type ReadOnlyMany struct{}
 type ReadWriteMany struct{}
 
 type AccessModeType struct {
@@ -192,7 +192,7 @@ const (
 )
 
 type PersistentVolumeClaimAttachment struct {
-	AccessMode AccessModeType `json:accessMode,omitempty`
+	AccessMode                     AccessModeType   `json:accessMode,omitempty`
 	PersistentVolumeClaimReference *ObjectReference `json:persistentVolumeClaimReference,omitempty`
 }
 
@@ -759,9 +759,9 @@ const (
 	// CPU, in cores. (floating point w/ 3 decimal places)
 	ResourceCPU ResourceName = "cpu"
 	// Memory, in bytes.
-	ResourceMemory ResourceName = "memory"
-	ResourceSize ResourceName = "size"
-	ResourceIOPS ResourceName = "iops"
+	ResourceMemory  ResourceName = "memory"
+	ResourceSize    ResourceName = "size"
+	ResourceIOPS    ResourceName = "iops"
 	ResourceThrough ResourceName = "throughput"
 )
 

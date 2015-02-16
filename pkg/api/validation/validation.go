@@ -283,7 +283,7 @@ func validateGCEPersistentDisk(PD *api.GCEPersistentDisk) errs.ValidationErrorLi
 	return allErrs
 }
 
-func ValidatePersistentVolumeName(name string, prefix bool) (bool, string){
+func ValidatePersistentVolumeName(name string, prefix bool) (bool, string) {
 	return util.IsDNS1123Label(name), name
 }
 

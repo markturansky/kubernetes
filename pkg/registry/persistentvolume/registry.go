@@ -43,7 +43,7 @@ func NewEtcdRegistry(h tools.EtcdHelper) generic.Registry {
 				return NamespacePrefix
 			},
 			KeyFunc: PersistentVolumeKeyFunc,
-			Helper: h,
+			Helper:  h,
 		},
 	}
 }
