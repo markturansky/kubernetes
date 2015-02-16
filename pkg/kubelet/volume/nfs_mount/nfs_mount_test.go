@@ -6,6 +6,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/volume"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/mount"
 )
 
 func TestCanSupport(t *testing.T) {
@@ -27,9 +28,23 @@ func TestCanSupport(t *testing.T) {
 	}
 }
 
+type fakeMounter struct{}
+
+func (fake *fakeMounter) Mount(source string, target string, fstype string, flags uintptr, data string) error {
+	return nil
+}
+
+func (fake *fakeMounter) Unmount(target string, flags int) error {
+	return nil
+}
+
+func (fake *fakeMounter) List() ([]mount.MountPoint, error) {
+	return []mount.MountPoint{}, nil
+}
+
 func TestPlugin(t *testing.T) {
 	plugMgr := volume.PluginMgr{}
-	plugMgr.InitPlugins(ProbeVolumePlugins(), &volume.FakeHost{"fake"})
+	plugMgr.InitPlugins(ProbeVolumePlugins(), &volume.FakeHost{"/tmp/fake"})
 
 	plug, err := plugMgr.FindPluginByName("kubernetes.io/nfs-mount")
 	if err != nil {
@@ -37,9 +52,9 @@ func TestPlugin(t *testing.T) {
 	}
 	spec := &api.Volume{
 		Name:   "vol1",
-		Source: api.VolumeSource{NFSMount: &api.NFSMount{"localhost", "/vol1", ""}},
+		Source: api.VolumeSource{NFSMount: &api.NFSMount{"localhost", "/tmp:/tmp", ""}},
 	}
-	builder, err := plug.NewBuilder(spec, types.UID("poduid"))
+	builder, err := plug.(*nfsMountPlugin).newBuilderInternal(spec, types.UID("poduid"), &fakeMounter{})
 	if err != nil {
 		t.Errorf("Failed to make a new Builder: %v", err)
 	}
@@ -48,7 +63,7 @@ func TestPlugin(t *testing.T) {
 	}
 
 	path := builder.GetPath()
-	if path != "/vol1" {
+	if path != "/tmp:/tmp" {
 		t.Errorf("Got unexpected path: %s", path)
 	}
 
@@ -56,7 +71,7 @@ func TestPlugin(t *testing.T) {
 		t.Errorf("Expected success, got: %v", err)
 	}
 
-	cleaner, err := plug.NewCleaner("vol1", types.UID("poduid"))
+	cleaner, err := plug.NewCleaner("/tmp:/tmp", types.UID("poduid"))
 	if err != nil {
 		t.Errorf("Failed to make a new Cleaner: %v", err)
 	}
