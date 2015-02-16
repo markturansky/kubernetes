@@ -1,0 +1,10 @@
+id: pv0003
+kind: PersistentVolume
+apiVersion: v1beta1
+spec:
+  retentionPolicy: "DeleteOnExit"
+  source:
+    nfsMount:
+      server: "172.17.0.31"
+      sourcePath: "/tmp:/mnt"
+      mountOptions: ""

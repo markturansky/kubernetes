@@ -28,6 +28,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/gce"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/volume/mount_util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/mount"
 	"github.com/golang/glog"
@@ -75,7 +76,7 @@ func (util *GCEDiskUtil) AttachDisk(pd *gcePersistentDisk) error {
 	}
 	globalPDPath := makeGlobalPDName(pd.plugin.host, pd.pdName, pd.readOnly)
 	// Only mount the PD globally once.
-	mountpoint, err := isMountPoint(globalPDPath)
+	mountpoint, err := mount_util.IsMountPoint(globalPDPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			if err := os.MkdirAll(globalPDPath, 0750); err != nil {
