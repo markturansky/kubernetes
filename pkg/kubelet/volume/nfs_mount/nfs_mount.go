@@ -2,7 +2,6 @@ package nfs_mount
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -90,34 +89,36 @@ func (nfs *nfsMount) SetUp() error {
 	if len(path) != 2 {
 		return fmt.Errorf("Mount path must be of format /export/path:/mount/path")
 	}
+	exportDir := path[0]
+	mountDir := path[1]
 	flags := uintptr(0)
 	if strings.Contains(nfs.mountOptions, "ro") {
 		flags = mount.FlagReadOnly
 	}
-	err := nfs.mounter.Mount(path[0], path[1], "", mount.FlagBind|flags, "")
+	// NFS Mount format is server:/export/path /mount
+	err := nfs.mounter.Mount(nfs.server+":"+exportDir, mountDir, "", mount.FlagBind|flags, "")
 	if err != nil {
-		mountpoint, mntErr := mount_util.IsMountPoint(nfs.GetPath())
+		mountpoint, mntErr := mount_util.IsMountPoint(mountDir)
 		if mntErr != nil {
 			glog.Errorf("isMountpoint check failed: %v", mntErr)
 			return err
 		}
 		if mountpoint {
-			if mntErr = nfs.mounter.Unmount(nfs.GetPath(), 0); mntErr != nil {
+			if mntErr = nfs.mounter.Unmount(mountDir, 0); mntErr != nil {
 				glog.Errorf("Failed to unmount: %v", mntErr)
 				return err
 			}
-			mountpoint, mntErr := mount_util.IsMountPoint(nfs.GetPath())
+			mountpoint, mntErr := mount_util.IsMountPoint(mountDir)
 			if mntErr != nil {
 				glog.Errorf("isMountpoint check failed: %v", mntErr)
 				return err
 			}
 			if mountpoint {
 				// This is very odd, we don't expect it.  We'll try again next sync loop.
-				glog.Errorf("%s is still mounted, despite call to unmount().  Will try again next sync loop.", nfs.GetPath())
+				glog.Errorf("%s is still mounted, despite call to unmount().  Will try again next sync loop.", mountDir)
 				return err
 			}
 		}
-		os.Remove(nfs.GetPath())
 		return err
 	}
 
