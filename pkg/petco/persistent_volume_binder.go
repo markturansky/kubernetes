@@ -20,7 +20,6 @@ import (
 	"sort"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/golang/glog"
 )
 
 type PersistentVolumeIndex interface {
@@ -66,14 +65,10 @@ func (binder *genericPersistentVolumeIndex) Match(claim *api.PersistentVolumeCla
 	desiredModes := GetAccessModesAsString(claim.Spec.AccessModes)
 	quantity := claim.Spec.Resources[api.ResourceSize]
 	desiredSize := quantity.Value()
-
-	glog.V(5).Infof("Attempting to match %v and %v\n", desiredModes, desiredSize)
-
 	volumes := binder.cache[desiredModes]
 
 	for _, v := range volumes {
 		qty := v.Spec.Capacity[api.ResourceSize]
-		glog.V(5).Infof("found size %s\n", qty.Value())
 		if qty.Value() >= desiredSize && v.Status.PersistentVolumeClaimReference == nil {
 			return v
 		}

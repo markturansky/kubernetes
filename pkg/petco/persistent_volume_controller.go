@@ -66,10 +66,13 @@ func NewPersistentVolumeController(kubeClient client.Interface) *PersistentVolum
 
 	client := &persistentVolumeControllerClientImpl{
 		UpdateVolumeFunc: func(volume *api.PersistentVolume) (*api.PersistentVolume, error) {
-			return kubeClient.PersistentVolumes(api.NamespaceDefault).Update(volume)
+			return kubeClient.PersistentVolumes(api.NamespaceAll).Update(volume)
 		},
 		UpdateClaimFunc: func(claim *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error) {
 			return kubeClient.PersistentVolumeClaims(claim.Namespace).Update(claim)
+		},
+		GetClaimFunc: func(name, namespace string)  (*api.PersistentVolumeClaim, error) {
+			return kubeClient.PersistentVolumeClaims(namespace).Get(name)
 		},
 	}
 
@@ -109,15 +112,18 @@ func (controller *PersistentVolumeController) syncPersistentVolume(obj interface
 	// bring all newly found volumes under management
 	if !controller.volumeIndex.Exists(volume) {
 		controller.volumeIndex.Add(volume)
+		glog.V(2).Infof("Managing PersistentVolume[UID=%s]\n", volume.UID)
 	}
+
+	// TODO index needs Remove methods to keep available storage in sync.
 
 	// verify the volume is still claimed by a user
 	if volume.Status.PersistentVolumeClaimReference != nil {
-		if _, exists, _ := controller.claimStore.Get(volume.Status.PersistentVolumeClaimReference); exists {
+		if _, err := controller.client.GetClaim(volume.Status.PersistentVolumeClaimReference.Name, volume.Status.PersistentVolumeClaimReference.Namespace); err == nil {
 			glog.V(5).Infof("%s has a bound claim: %s", volume.Name, volume.Status.PersistentVolumeClaimReference.Name)
 		} else {
 			//claim was deleted by user.
-			glog.V(5).Infof("Unbinding claim for volume: %s\n", volume.Name)
+			glog.V(2).Infof("PersistentVolumeClaim[UID=%s] unbound from PersistentVolume[UID=%s]\n", volume.Status.PersistentVolumeClaimReference.UID, volume.UID)
 			volume.Status.PersistentVolumeClaimReference = nil
 			controller.client.UpdateVolume(volume)
 		}
@@ -156,6 +162,9 @@ func (controller *PersistentVolumeController) syncPersistentVolumeClaim(obj inte
 
 		controller.client.UpdateVolume(volume)
 		controller.client.UpdateClaim(claim)
+
+		glog.V(2).Infof("PersistentVolumeClaim[UID=%s] bound to PersistentVolume[UID=%s]\n", claim.UID, volume.UID)
+
 	} else {
 		glog.V(5).Infof("No volume match found for %s\n", claim.UID)
 	}
@@ -206,11 +215,13 @@ func (controller *PersistentVolumeController) reconcile(reconcilers ...Reconcile
 type persistentVolumeControllerClient interface {
 	UpdateVolume(volume *api.PersistentVolume) (*api.PersistentVolume, error)
 	UpdateClaim(claim *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error)
+	GetClaim(name, namespace string) (*api.PersistentVolumeClaim, error)
 }
 
 type persistentVolumeControllerClientImpl struct {
 	UpdateVolumeFunc func(volume *api.PersistentVolume) (*api.PersistentVolume, error)
 	UpdateClaimFunc  func(volume *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error)
+	GetClaimFunc  func(name, namespace string) (*api.PersistentVolumeClaim, error)
 }
 
 func (i *persistentVolumeControllerClientImpl) UpdateVolume(volume *api.PersistentVolume) (*api.PersistentVolume, error) {
@@ -219,6 +230,10 @@ func (i *persistentVolumeControllerClientImpl) UpdateVolume(volume *api.Persiste
 
 func (i *persistentVolumeControllerClientImpl) UpdateClaim(claim *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error) {
 	return i.UpdateClaimFunc(claim)
+}
+
+func (i *persistentVolumeControllerClientImpl) GetClaim(name, namespace string) (*api.PersistentVolumeClaim, error) {
+	return i.GetClaimFunc(name, namespace)
 }
 
 //

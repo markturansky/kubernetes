@@ -72,10 +72,6 @@ func (rs *REST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, boo
 	if !ok {
 		return nil, false, fmt.Errorf("invalid object type")
 	}
-
-	if !api.ValidNamespace(ctx, &persistentvolume.ObjectMeta) {
-		return nil, false, errors.NewConflict("persistentVolume", persistentvolume.Namespace, fmt.Errorf("PersistenPersistentVolumee does not match the provided context"))
-	}
 	if errs := validation.ValidatePersistentVolume(persistentvolume); len(errs) > 0 {
 		return nil, false, errors.NewInvalid("persistentVolume", persistentvolume.Name, errs)
 	}
