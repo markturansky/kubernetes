@@ -140,6 +140,23 @@ func TestMatchVolume(t *testing.T) {
 
 }
 
+func TestExamples(t *testing.T){
+	volume := readAndDecodeVolume("local-02.yaml", t)
+	claim := readAndDecodeClaim("claim-01.yaml", t)
+	binder := NewPersistentVolumeIndex()
+
+	if claim.Spec.AccessModes.ReadWriteOnce == nil {
+		t.Error("Expected RWO access mode")
+	}
+
+	binder.Add(volume)
+	match := binder.Match(claim)
+
+	if match == nil {
+		t.Error("Unexpected nil match")
+	}
+}
+
 func TestSort(t *testing.T) {
 	volumes := createTestVolumes()
 	volumes = volumes[0:3]

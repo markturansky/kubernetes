@@ -89,8 +89,6 @@ func (controller *PersistentVolumeController) Run(period time.Duration) {
 }
 
 func (controller *PersistentVolumeController) synchronize() {
-	glog.V(5).Infof("Beginning persistent volume controller sync\n")
-
 	volumeReconciler := Reconciler{
 		ListFunc:      controller.volumeStore.List,
 		ReconcileFunc: controller.syncPersistentVolume,
@@ -102,24 +100,21 @@ func (controller *PersistentVolumeController) synchronize() {
 	}
 
 	controller.reconcile(volumeReconciler, claimsReconciler)
-	glog.V(5).Infof("Exiting persistent volume controller sync\n")
 }
 
 func (controller *PersistentVolumeController) syncPersistentVolume(obj interface{}) (interface{}, error) {
 	volume := obj.(*api.PersistentVolume)
-	glog.V(5).Infof("Synchronizing persistent volume: %+v\n", obj)
+	glog.V(5).Infof("Synchronizing persistent volume: %s\n", volume.Name)
 
 	// bring all newly found volumes under management
 	if !controller.volumeIndex.Exists(volume) {
 		controller.volumeIndex.Add(volume)
 	}
 
-	fmt.Println("hello world!")
-
 	// verify the volume is still claimed by a user
 	if volume.Status.PersistentVolumeClaimReference != nil {
 		if _, exists, _ := controller.claimStore.Get(volume.Status.PersistentVolumeClaimReference); exists {
-			glog.V(5).Infof("%s has a bound claim", volume.Name)
+			glog.V(5).Infof("%s has a bound claim: %s", volume.Name, volume.Status.PersistentVolumeClaimReference.Name)
 		} else {
 			//claim was deleted by user.
 			glog.V(5).Infof("Unbinding claim for volume: %s\n", volume.Name)
@@ -128,8 +123,6 @@ func (controller *PersistentVolumeController) syncPersistentVolume(obj interface
 		}
 	}
 
-	fmt.Println("goodbye world")
-
 	return volume, nil
 }
 
@@ -137,27 +130,34 @@ func (controller *PersistentVolumeController) syncPersistentVolumeClaim(obj inte
 	claim := obj.(*api.PersistentVolumeClaim)
 	glog.V(5).Infof("Synchronizing persistent volume claim: %v\n", obj)
 
-	if claim.Status.PersistentVolumeReference == nil {
+	if claim.Status.PersistentVolumeReference != nil {
+		glog.V(5).Infof("Claim bound to : %s\n", claim.Status.PersistentVolumeReference.Name)
+		return obj, nil
+	}
 
-		volume := controller.volumeIndex.Match(claim)
 
-		if volume != nil {
-			claimRef, err := api.GetReference(claim)
-			if err != nil {
-				return nil, fmt.Errorf("Unexpected error making claim reference: %v\n", err)
-			}
+	glog.V(5).Infof("Attempting match for claim: %s\n", claim.Name)
 
-			volumeRef, err := api.GetReference(volume)
-			if err != nil {
-				return nil, fmt.Errorf("Unexpected error making volume reference: %v\n", err)
-			}
+	volume := controller.volumeIndex.Match(claim)
 
-			volume.Status.PersistentVolumeClaimReference = claimRef
-			claim.Status.PersistentVolumeReference = volumeRef
-
-			controller.client.UpdateVolume(volume)
-			controller.client.UpdateClaim(claim)
+	if volume != nil {
+		claimRef, err := api.GetReference(claim)
+		if err != nil {
+			return nil, fmt.Errorf("Unexpected error making claim reference: %v\n", err)
 		}
+
+		volumeRef, err := api.GetReference(volume)
+		if err != nil {
+			return nil, fmt.Errorf("Unexpected error making volume reference: %v\n", err)
+		}
+
+		volume.Status.PersistentVolumeClaimReference = claimRef
+		claim.Status.PersistentVolumeReference = volumeRef
+
+		controller.client.UpdateVolume(volume)
+		controller.client.UpdateClaim(claim)
+	} else {
+		glog.V(5).Infof("No volume match found for %s\n", claim.UID)
 	}
 
 	return obj, nil

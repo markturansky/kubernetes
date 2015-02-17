@@ -67,7 +67,7 @@ func (binder *genericPersistentVolumeIndex) Match(claim *api.PersistentVolumeCla
 	quantity := claim.Spec.Resources[api.ResourceSize]
 	desiredSize := quantity.Value()
 
-	glog.V(5).Infof("Attempting to match %s and %s\n", desiredModes, desiredSize)
+	glog.V(5).Infof("Attempting to match %v and %v\n", desiredModes, desiredSize)
 
 	volumes := binder.cache[desiredModes]
 
