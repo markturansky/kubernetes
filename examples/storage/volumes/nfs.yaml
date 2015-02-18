@@ -5,8 +5,7 @@ metadata:
 spec:
   capacity:
     size: 10
-  source:
-    nfsMount:
-      server: "127.0.0.1"
-      sourcePath: "/tmp"
-      mountOptions: "ro"
+  nfsMount:
+    server: "127.0.0.1"
+    sourcePath: "/tmp"
+    mountOptions: "ro"
