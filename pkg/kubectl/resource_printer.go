@@ -30,7 +30,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/petco"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volumemanager"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
@@ -442,14 +442,14 @@ func printMinionList(list *api.NodeList, w io.Writer) error {
 
 func printPersistentVolume(pv *api.PersistentVolume, w io.Writer) error {
 	claimRefUID := ""
-	if pv.Status.PersistentVolumeClaimReference != nil {
-		claimRefUID += pv.Status.PersistentVolumeClaimReference.Name
+	if pv.Status.ClaimRef != nil {
+		claimRefUID += pv.Status.ClaimRef.Name
 		claimRefUID += " / "
-		claimRefUID += string(pv.Status.PersistentVolumeClaimReference.UID)
+		claimRefUID += string(pv.Status.ClaimRef.UID)
 	}
 
-	modes := petco.GetAccessModeType(pv.Spec.Source)
-	modesStr := petco.GetAccessModesAsString(modes)
+	modes := volumemanager.GetAccessModeType(pv.Spec.Source)
+	modesStr := volumemanager.GetAccessModesAsString(modes)
 
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", pv.Name, pv.Labels, pv.Spec.Capacity, modesStr,  pv.Status.Phase, claimRefUID)
 	return err
@@ -466,8 +466,8 @@ func printPersistentVolumeList(list *api.PersistentVolumeList, w io.Writer) erro
 
 func printPersistentVolumeClaim(pvc *api.PersistentVolumeClaim, w io.Writer) error {
 	volumeRefUID := ""
-	if pvc.Status.PersistentVolumeReference != nil {
-		volumeRefUID = string(pvc.Status.PersistentVolumeReference.UID)
+	if pvc.Status.VolumeRef != nil {
+		volumeRefUID = string(pvc.Status.VolumeRef.UID)
 	}
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", pvc.Name, pvc.Labels, pvc.Status.Phase, volumeRefUID)
 	return err

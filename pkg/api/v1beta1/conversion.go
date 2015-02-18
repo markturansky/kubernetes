@@ -1139,7 +1139,7 @@ func init() {
 			if err := s.Convert(&in.Phase, &out.Phase, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.PersistentVolumeClaimReference, &out.PersistentVolumeClaimReference, 0); err != nil {
+			if err := s.Convert(&in.ClaimRef, &out.ClaimRef, 0); err != nil {
 				return err
 			}
 			return nil
@@ -1148,7 +1148,7 @@ func init() {
 			if err := s.Convert(&in.Phase, &out.Phase, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.PersistentVolumeClaimReference, &out.PersistentVolumeClaimReference, 0); err != nil {
+			if err := s.Convert(&in.ClaimRef, &out.ClaimRef, 0); err != nil {
 				return err
 			}
 			return nil
@@ -1208,7 +1208,7 @@ func init() {
 			if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.PersistentVolumeSelector, &out.PersistentVolumeSelector, 0); err != nil {
+			if err := s.Convert(&in.VolumeSelector, &out.VolumeSelector, 0); err != nil {
 				return err
 			}
 			return nil
@@ -1220,7 +1220,7 @@ func init() {
 			if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.PersistentVolumeSelector, &out.PersistentVolumeSelector, 0); err != nil {
+			if err := s.Convert(&in.VolumeSelector, &out.VolumeSelector, 0); err != nil {
 				return err
 			}
 			return nil

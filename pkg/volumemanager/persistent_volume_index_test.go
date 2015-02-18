@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package petco
+package volumemanager
 
 import (
 	"sort"
@@ -63,11 +63,11 @@ func TestAccessModes(t *testing.T) {
 }
 
 func TestMatchVolume(t *testing.T) {
-	binder := NewPersistentVolumeIndex()
+	index := NewPersistentVolumeIndex()
 	for _, pv := range createTestVolumes() {
-		binder.Add(pv)
-		if !binder.Exists(pv) {
-			t.Errorf("Expected to find persistent volume in binder: %+v", pv)
+		index.Add(pv)
+		if !index.Exists(pv) {
+			t.Errorf("Expected to find persistent volume in index: %+v", pv)
 		}
 	}
 
@@ -77,17 +77,14 @@ func TestMatchVolume(t *testing.T) {
 			Namespace: "myns",
 		},
 		Spec: api.PersistentVolumeClaimSpec{
-			AccessModes: api.AccessModeType{
-				ReadWriteOnce: &api.ReadWriteOnce{},
-				ReadOnlyMany:  &api.ReadOnlyMany{},
-			},
+			AccessModes: []api.AccessModeType{ api.ReadOnlyMany, api.ReadWriteOnce },
 			Resources: api.ResourceList{
 				api.ResourceName(api.ResourceSize): resource.MustParse("10G"),
 			},
 		},
 	}
 
-	volume := binder.Match(claim)
+	volume := index.Match(claim)
 
 	if volume == nil || volume.UID != "gce-pd-10" {
 		t.Errorf("Expected GCE disk of size 10G, received: %+v", volume)
@@ -99,16 +96,14 @@ func TestMatchVolume(t *testing.T) {
 			Namespace: "myns",
 		},
 		Spec: api.PersistentVolumeClaimSpec{
-			AccessModes: api.AccessModeType{
-				ReadWriteOnce: &api.ReadWriteOnce{},
-			},
+			AccessModes: []api.AccessModeType{ api.ReadWriteOnce },
 			Resources: api.ResourceList{
 				api.ResourceName(api.ResourceSize): resource.MustParse("10G"),
 			},
 		},
 	}
 
-	volume = binder.Match(claim)
+	volume = index.Match(claim)
 
 	if volume == nil || volume.UID != "aws-ebs-10" {
 		t.Errorf("Expected AWS block store of size 10G, received: %+v", volume)
@@ -121,18 +116,14 @@ func TestMatchVolume(t *testing.T) {
 			Namespace: "myns",
 		},
 		Spec: api.PersistentVolumeClaimSpec{
-			AccessModes: api.AccessModeType{
-				ReadWriteOnce: &api.ReadWriteOnce{},
-				ReadOnlyMany:  &api.ReadOnlyMany{},
-				ReadWriteMany: &api.ReadWriteMany{},
-			},
+			AccessModes: []api.AccessModeType{ api.ReadOnlyMany, api.ReadWriteOnce, api.ReadWriteMany },
 			Resources: api.ResourceList{
 				api.ResourceName(api.ResourceSize): resource.MustParse("50G"),
 			},
 		},
 	}
 
-	volume = binder.Match(claim)
+	volume = index.Match(claim)
 
 	if volume != nil {
 		t.Errorf("Unexpected non-nil volume: %+v", volume)
@@ -143,14 +134,10 @@ func TestMatchVolume(t *testing.T) {
 func TestExamples(t *testing.T){
 	volume := readAndDecodeVolume("local-02.yaml", t)
 	claim := readAndDecodeClaim("claim-01.yaml", t)
-	binder := NewPersistentVolumeIndex()
+	index := NewPersistentVolumeIndex()
 
-	if claim.Spec.AccessModes.ReadWriteOnce == nil {
-		t.Error("Expected RWO access mode")
-	}
-
-	binder.Add(volume)
-	match := binder.Match(claim)
+	index.Add(volume)
+	match := index.Match(claim)
 
 	if match == nil {
 		t.Error("Unexpected nil match")
@@ -269,7 +256,7 @@ func createTestVolumes() []*api.PersistentVolume {
 				},
 			},
 			Status: api.PersistentVolumeStatus{
-				PersistentVolumeClaimReference: &api.ObjectReference{ UID: "abc123" },
+				ClaimRef: &api.ObjectReference{ UID: "abc123" },
 			},
 		},
 		{

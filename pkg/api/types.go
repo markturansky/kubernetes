@@ -181,6 +181,7 @@ type VolumeSource struct {
 	// Secret represents a secret that should populate this volume.
 	Secret *SecretSource `json:"secret"`
 
+	// TODO (per thockin) https://github.com/GoogleCloudPlatform/kubernetes/pull/4055#discussion_r24865963
 	AWSElasticBlockStore *AWSElasticBlockStore `json:"elasticBlockStore"`
 
 	NFSMount *NFSMount `json:"nfsMount"`
@@ -202,12 +203,12 @@ type PersistentVolume struct {
 type PersistentVolumeSpec struct {
 	Capacity ResourceList `json:"capacity,omitempty`
 	// AccessModeTypes are inferred from the Source
-	Source VolumeSource `json:"source,omitempty"`
+	Source VolumeSource `json:",inline"`
 }
 
 type PersistentVolumeStatus struct {
-	Phase                          StoragePhase     `json:"phase,omitempty"`
-	PersistentVolumeClaimReference *ObjectReference `json:persistentVolumeClaimReference,omitempty`
+	Phase   StoragePhase     `json:"phase,omitempty"`
+	ClaimRef *ObjectReference `json:claimReference,omitempty`
 }
 
 type PersistentVolumeList struct {
@@ -239,29 +240,25 @@ type PersistentVolumeClaimList struct {
 // and allows a Source for provider-specific attributes
 type PersistentVolumeClaimSpec struct {
 	// Contains the types of access modes desired
-	AccessModes              AccessModeType    `json:"accessModes,omitempty"`
-	Resources                ResourceList      `json:"resources,omitempty"`
-	PersistentVolumeSelector map[string]string `json:"selector,omitempty"`
+	AccessModes     []AccessModeType  `json:"accessModes,omitempty"`
+	Resources       ResourceList      `json:"resources,omitempty"`
+	VolumeSelector 	map[string]string `json:"selector,omitempty"`
 }
 
 type PersistentVolumeClaimStatus struct {
-	Phase                     StoragePhase `json:"phase,omitempty"`
-	AccessModes               AccessModeType
-	Resources                 ResourceList
-	PersistentVolumeReference *ObjectReference
+	Phase           StoragePhase `json:"phase,omitempty"`
+	AccessModes     []AccessModeType
+	Resources       ResourceList
+	VolumeRef *ObjectReference
 }
 
-type ReadWriteOnce struct{}
-type ReadOnlyMany struct{}
-type ReadWriteMany struct{}
+type AccessModeType string
 
-type AccessModeType struct {
-	// Any of these access modes may be be specified.
-	// If none are specified, the default is ReadWriteOnce
-	ReadWriteOnce *ReadWriteOnce `json:"rwo,omitempty"`
-	ReadOnlyMany  *ReadOnlyMany  `json:"rox,omitempty"`
-	ReadWriteMany *ReadWriteMany `json:"rwx,omitempty"`
-}
+const (
+	ReadWriteOnce AccessModeType = "ReadWriteOnce"
+	ReadOnlyMany  AccessModeType = "ReadOnlyMany"
+	ReadWriteMany AccessModeType = "ReadWriteMany"
+)
 
 type StoragePhase string
 
@@ -932,13 +929,13 @@ type ResourceName string
 
 const (
 	// CPU, in cores. (500m = .5 cores)
-	ResourceCPU ResourceName = "cpu"
+	ResourceCPU			ResourceName = "cpu"
 	// Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-	ResourceMemory ResourceName = "memory"
-	// volume size, in gigabytes (e,g. 5)
-	ResourceSize    ResourceName = "size"
-	ResourceIOPS    ResourceName = "iops"
-	ResourceThrough ResourceName = "throughput"
+	ResourceMemory 		ResourceName = "memory"
+	// volume size, in byes (e,g. 5Gi = 5GiB = 5 * 1024 * 2014 * 2014)
+	ResourceSize		ResourceName = "size"
+	ResourceIOPS    	ResourceName = "iops"
+	ResourceThroughput	ResourceName = "throughput"
 )
 
 // ResourceList is a set of (resource name, quantity) pairs.

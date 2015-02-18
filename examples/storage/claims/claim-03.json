@@ -2,20 +2,14 @@
     "kind": "PersistentVolumeClaim",
     "apiVersion": "v1beta3",
     "metadata": {
-        "name": "claim01",
-        "namespace": "myns",
-        "creationTimestamp": null
+        "name": "claim01"
     }, "spec": {
-        "accessModes": {
-            "rwo": {},
-            "rox": {}
-        },
+        "accessModes": [
+            "ReadWriteOnce",
+            "ReadOnlyMany"
+        ],
         "resources": {
             "size": "10G"
         }
-    }, "status": {
-        "AccessModes": {},
-        "Resources": null,
-        "PersistentVolumeReference": null
     }
 }

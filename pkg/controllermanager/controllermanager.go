@@ -34,7 +34,7 @@ import (
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/healthz"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/hyperkube"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/petco"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volumemanager"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -78,7 +78,7 @@ func NewCMServer() *CMServer {
 		NodeMilliCPU:               1000,
 		NodeMemory:                 resource.MustParse("3Gi"),
 		SyncNodeList:               true,
-		PersistentVolumeSyncPeriod: 1 * time.Second,
+		PersistentVolumeSyncPeriod: 10 * time.Second,
 		KubeletConfig: client.KubeletConfig{
 			Port:        ports.KubeletPort,
 			EnableHttps: false,
@@ -183,8 +183,8 @@ func (s *CMServer) Run(_ []string) error {
 	resourceQuotaManager := resourcequota.NewResourceQuotaManager(kubeClient)
 	resourceQuotaManager.Run(s.ResourceQuotaSyncPeriod)
 
-	persistentVolumeController := petco.NewPersistentVolumeController(kubeClient)
-	persistentVolumeController.Run(s.PersistentVolumeSyncPeriod)
+	persistentVolumeManager := volumemanager.NewPersistentVolumeManager(kubeClient)
+	persistentVolumeManager.Run(s.PersistentVolumeSyncPeriod)
 
 	select {}
 	return nil

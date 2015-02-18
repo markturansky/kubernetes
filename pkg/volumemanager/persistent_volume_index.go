@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package petco
+package volumemanager
 
 import (
 	"sort"
@@ -47,17 +47,7 @@ func NewPersistentVolumeIndex() PersistentVolumeIndex {
 	}
 }
 
-type PersistentVolumeComparator []*api.PersistentVolume
 
-func (comp PersistentVolumeComparator) Len() int      { return len(comp) }
-func (comp PersistentVolumeComparator) Swap(i, j int) { comp[i], comp[j] = comp[j], comp[i] }
-func (comp PersistentVolumeComparator) Less(i, j int) bool {
-	aQty := comp[i].Spec.Capacity[api.ResourceSize]
-	bQty := comp[j].Spec.Capacity[api.ResourceSize]
-	aSize := aQty.Value()
-	bSize := bQty.Value()
-	return aSize < bSize
-}
 
 // given a set of volumes, match the one that closest fits the claim
 func (binder *genericPersistentVolumeIndex) Match(claim *api.PersistentVolumeClaim) *api.PersistentVolume {
@@ -69,7 +59,7 @@ func (binder *genericPersistentVolumeIndex) Match(claim *api.PersistentVolumeCla
 
 	for _, v := range volumes {
 		qty := v.Spec.Capacity[api.ResourceSize]
-		if qty.Value() >= desiredSize && v.Status.PersistentVolumeClaimReference == nil {
+		if qty.Value() >= desiredSize && v.Status.ClaimRef == nil {
 			return v
 		}
 	}
@@ -104,48 +94,66 @@ func (binder *genericPersistentVolumeIndex) Exists(volume *api.PersistentVolume)
 	return true
 }
 
-func GetAccessModesAsString(modes api.AccessModeType) string {
+func GetAccessModesAsString(modes []api.AccessModeType) string {
 
 	modesAsString := ""
 
-	if modes.ReadWriteOnce != nil {
+	if contains(modes, api.ReadWriteOnce) {
 		modesAsString += "RWO"
 	}
-
-	if modes.ReadOnlyMany != nil {
+	if contains(modes, api.ReadOnlyMany) {
 		modesAsString += "ROX"
 	}
-
-	if modes.ReadWriteMany != nil {
+	if contains(modes, api.ReadWriteMany) {
 		modesAsString += "RWX"
 	}
 
 	return modesAsString
 }
 
+func contains(modes []api.AccessModeType, mode api.AccessModeType) bool{
+	for _,m := range modes {
+		if m == mode {
+			return true
+		}
+	}
+	return false
+}
+
 // would this be better on api.VolumeSource?
-func GetAccessModeType(source api.VolumeSource) api.AccessModeType {
+func GetAccessModeType(source api.VolumeSource) []api.AccessModeType {
 
 	if source.AWSElasticBlockStore != nil || source.HostPath != nil {
-		return api.AccessModeType{
-			ReadWriteOnce: &api.ReadWriteOnce{},
-		}
+		return []api.AccessModeType{api.ReadWriteOnce}
 	}
 
 	if source.GCEPersistentDisk != nil {
-		return api.AccessModeType{
-			ReadWriteOnce: &api.ReadWriteOnce{},
-			ReadOnlyMany:  &api.ReadOnlyMany{},
+		return []api.AccessModeType{
+			api.ReadWriteOnce,
+			api.ReadOnlyMany,
 		}
 	}
 
 	if source.NFSMount != nil {
-		return api.AccessModeType{
-			ReadWriteOnce: &api.ReadWriteOnce{},
-			ReadOnlyMany:  &api.ReadOnlyMany{},
-			ReadWriteMany: &api.ReadWriteMany{},
+		return []api.AccessModeType{
+			api.ReadWriteOnce,
+			api.ReadOnlyMany,
+			api.ReadWriteMany,
 		}
 	}
 
-	return api.AccessModeType{}
+	return []api.AccessModeType{}
+}
+
+
+type PersistentVolumeComparator []*api.PersistentVolume
+
+func (comp PersistentVolumeComparator) Len() int      { return len(comp) }
+func (comp PersistentVolumeComparator) Swap(i, j int) { comp[i], comp[j] = comp[j], comp[i] }
+func (comp PersistentVolumeComparator) Less(i, j int) bool {
+	aQty := comp[i].Spec.Capacity[api.ResourceSize]
+	bQty := comp[j].Spec.Capacity[api.ResourceSize]
+	aSize := aQty.Value()
+	bSize := bQty.Value()
+	return aSize < bSize
 }

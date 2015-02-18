@@ -4,6 +4,6 @@ metadata:
   name: myclaim-2
 spec:
   accessModes:
-    rwo:{}
+    - ReadWriteOnly
   resources:
     size: 8

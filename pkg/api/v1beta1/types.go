@@ -106,6 +106,7 @@ type VolumeSource struct {
 	// Secret represents a secret to populate the volume with
 	Secret *SecretSource `json:"secret" description:"secret to populate volume with"`
 
+	// TODO (per thockin) https://github.com/GoogleCloudPlatform/kubernetes/pull/4055#discussion_r24865963
 	AWSElasticBlockStore *AWSElasticBlockStore `json:"elasticBlockStore"`
 
 	NFSMount *NFSMount `json:"nfsMount"`
@@ -114,21 +115,24 @@ type VolumeSource struct {
 }
 
 type PersistentVolume struct {
-	TypeMeta `json:",inline"`
+	TypeMeta   `json:",inline"`
+
 	//Spec defines a persistent volume owned by the cluster
 	Spec PersistentVolumeSpec `json:"spec,omitempty"`
+
 	// Status represents the current information about persistent volume.
 	Status PersistentVolumeStatus `json:"status,omitempty"`
 }
 
 type PersistentVolumeSpec struct {
 	Capacity ResourceList `json:"capacity,omitempty`
-	Source   VolumeSource `json:"source,omitempty"`
+	// AccessModeTypes are inferred from the Source
+	Source VolumeSource `json:",inline"`
 }
 
 type PersistentVolumeStatus struct {
-	Phase                          StoragePhase     `json:"phase,omitempty"`
-	PersistentVolumeClaimReference *ObjectReference `json:persistentVolumeClaimReference,omitempty`
+	Phase   StoragePhase     `json:"phase,omitempty"`
+	ClaimRef *ObjectReference `json:claimReference,omitempty`
 }
 
 type PersistentVolumeList struct {
@@ -138,7 +142,7 @@ type PersistentVolumeList struct {
 
 // a PersistentVolumeClaim is a user's request for and claim to a persistent volume
 type PersistentVolumeClaim struct {
-	TypeMeta `json:",inline"`
+	TypeMeta   `json:",inline"`
 
 	// Spec defines the volume
 	Spec PersistentVolumeClaimSpec `json:"spec,omitempty"`
@@ -157,29 +161,25 @@ type PersistentVolumeClaimList struct {
 // and allows a Source for provider-specific attributes
 type PersistentVolumeClaimSpec struct {
 	// Contains the types of access modes desired
-	AccessModes              AccessModeType    `json:"accessModes,omitempty"`
-	Resources                ResourceList      `json:"resources,omitempty"`
-	PersistentVolumeSelector map[string]string `json:"selector,omitempty"`
+	AccessModes     []AccessModeType  `json:"accessModes,omitempty"`
+	Resources       ResourceList      `json:"resources,omitempty"`
+	VolumeSelector 	map[string]string `json:"selector,omitempty"`
 }
 
 type PersistentVolumeClaimStatus struct {
-	Phase                     StoragePhase `json:"phase,omitempty"`
-	AccessModes               AccessModeType
-	Resources                 ResourceList
-	PersistentVolumeReference *ObjectReference
+	Phase           StoragePhase `json:"phase,omitempty"`
+	AccessModes     []AccessModeType
+	Resources       ResourceList
+	VolumeRef *ObjectReference
 }
 
-type ReadWriteOnce struct{}
-type ReadOnlyMany struct{}
-type ReadWriteMany struct{}
+type AccessModeType string
 
-type AccessModeType struct {
-	// Any of these access modes may be be specified.
-	// If none are specified, the default is ReadWriteOnce
-	ReadWriteOnce *ReadWriteOnce `json:"rwo,omitempty"`
-	ReadOnlyMany  *ReadOnlyMany  `json:"rox,omitempty"`
-	ReadWriteMany *ReadWriteMany `json:"rwx,omitempty"`
-}
+const (
+	ReadWriteOnce	= "ReadWriteOnce"
+	ReadOnlyMany 	= "ReadOnlyMany"
+	ReadWriteMany 	= "ReadWriteMany"
+)
 
 type StoragePhase string
 
@@ -764,13 +764,14 @@ type NodeResources struct {
 type ResourceName string
 
 const (
-	// CPU, in cores. (floating point w/ 3 decimal places)
-	ResourceCPU ResourceName = "cpu"
-	// Memory, in bytes.
-	ResourceMemory  ResourceName = "memory"
-	ResourceSize    ResourceName = "size"
-	ResourceIOPS    ResourceName = "iops"
-	ResourceThrough ResourceName = "throughput"
+	// CPU, in cores. (500m = .5 cores)
+	ResourceCPU			ResourceName = "cpu"
+	// Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
+	ResourceMemory 		ResourceName = "memory"
+	// volume size, in byes (e,g. 5Gi = 5GiB = 5 * 1024 * 2014 * 2014)
+	ResourceSize		ResourceName = "size"
+	ResourceIOPS    	ResourceName = "iops"
+	ResourceThroughput	ResourceName = "throughput"
 )
 
 type ResourceList map[ResourceName]util.IntOrString

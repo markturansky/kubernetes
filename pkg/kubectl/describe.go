@@ -228,7 +228,7 @@ func (d *PersistentVolumeDescriber) Describe(namespace, name string) (string, er
 		fmt.Fprintf(out, "Name:\t%s\n", pv.Name)
 		fmt.Fprintf(out, "Labels:\t%s\n", formatLabels(pv.Labels))
 		fmt.Fprintf(out, "Status:\t%d\n", pv.Status.Phase)
-		fmt.Fprintf(out, "Claim:\t%d\n", pv.Status.PersistentVolumeClaimReference.UID)
+		fmt.Fprintf(out, "Claim:\t%d\n", pv.Status.ClaimRef.UID)
 
 		return nil
 	})
@@ -249,7 +249,7 @@ func (d *PersistentVolumeClaimDescriber) Describe(namespace, name string) (strin
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", psd.Name)
 		fmt.Fprintf(out, "Status:\t%d\n", psd.Status.Phase)
-		fmt.Fprintf(out, "Volume:\t%d\n", psd.Status.PersistentVolumeReference.UID)
+		fmt.Fprintf(out, "Volume:\t%d\n", psd.Status.VolumeRef.UID)
 
 		return nil
 	})

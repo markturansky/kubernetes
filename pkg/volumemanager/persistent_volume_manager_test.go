@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package petco
+package volumemanager
 
 import (
 	"io/ioutil"
@@ -24,18 +24,24 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
+type FakeWatcher struct {
+	w *watch.FakeWatcher
+	*client.Fake
+}
 
 func fakeClient() *client.Fake {
 	api.ForTesting_ReferencesAllowBlankSelfLinks = true
-	fake := &client.Fake{}
+	fakeWatch := watch.NewFake()
+	fake := &client.Fake{Watch: fakeWatch}
 	return fake
 }
 
 func TestVolumeController(t *testing.T) {
 
-	controller := NewPersistentVolumeController(fakeClient())
+	controller := NewPersistentVolumeManager(fakeClient())
 
 	pv := &api.PersistentVolume{
 		ObjectMeta: api.ObjectMeta{
@@ -57,10 +63,7 @@ func TestVolumeController(t *testing.T) {
 			Namespace: "myns",
 		},
 		Spec: api.PersistentVolumeClaimSpec{
-			AccessModes: api.AccessModeType{
-				ReadWriteOnce: &api.ReadWriteOnce{},
-				ReadOnlyMany:  &api.ReadOnlyMany{},
-			},
+			AccessModes: []api.AccessModeType{ api.ReadOnlyMany, api.ReadWriteOnce },
 			Resources: api.ResourceList{
 				api.ResourceName(api.ResourceSize): resource.MustParse("5G"),
 			},
@@ -73,10 +76,7 @@ func TestVolumeController(t *testing.T) {
 			Namespace: "myns",
 		},
 		Spec: api.PersistentVolumeClaimSpec{
-			AccessModes: api.AccessModeType{
-				ReadWriteOnce: &api.ReadWriteOnce{},
-				ReadOnlyMany:  &api.ReadOnlyMany{},
-			},
+			AccessModes: []api.AccessModeType{ api.ReadOnlyMany, api.ReadWriteOnce },
 			Resources: api.ResourceList{
 				api.ResourceName(api.ResourceSize): resource.MustParse("5G"),
 			},
@@ -98,7 +98,7 @@ func TestVolumeController(t *testing.T) {
 	}
 
 	retClaimA := obj.(*api.PersistentVolumeClaim)
-	if retClaimA.Status.PersistentVolumeReference == nil {
+	if retClaimA.Status.VolumeRef == nil {
 		t.Error("Expected claim to be bound to volume")
 	}
 
@@ -109,7 +109,7 @@ func TestVolumeController(t *testing.T) {
 	}
 
 	retClaimB := obj.(*api.PersistentVolumeClaim)
-	if retClaimB.Status.PersistentVolumeReference != nil {
+	if retClaimB.Status.VolumeRef != nil {
 		t.Error("Unexpected claim found.")
 	}
 }
@@ -117,7 +117,7 @@ func TestVolumeController(t *testing.T) {
 
 func TestVolumeExamples(t *testing.T){
 
-	controller := NewPersistentVolumeController(fakeClient())
+	controller := NewPersistentVolumeManager(fakeClient())
 
 	volumeA := readAndDecodeVolume("local-01.yaml", t)
 	claimA := readAndDecodeClaim("claim-01.yaml", t)
@@ -138,7 +138,7 @@ func TestVolumeExamples(t *testing.T){
 	}
 
 	retClaimA := obj.(*api.PersistentVolumeClaim)
-	if retClaimA.Status.PersistentVolumeReference == nil {
+	if retClaimA.Status.VolumeRef == nil {
 		t.Error("Expected claim to be bound to volume")
 	}
 }

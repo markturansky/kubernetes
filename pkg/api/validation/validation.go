@@ -305,11 +305,13 @@ func ValidatePersistentVolumeName(name string, prefix bool) (bool, string) {
 	return util.IsDNS1123Label(name), name
 }
 
+// TODO implement full validation to complete #4055
 func ValidatePersistentVolume(persistentvolume *api.PersistentVolume) errs.ValidationErrorList {
 	allErrs := ValidateObjectMeta(&persistentvolume.ObjectMeta, false, ValidatePersistentVolumeName)
 	return allErrs
 }
 
+// TODO implement full validation to complete #4055
 func ValidatePersistentVolumeClaim(persistentvolumeclaim *api.PersistentVolumeClaim) errs.ValidationErrorList {
 	allErrs := ValidateObjectMeta(&persistentvolumeclaim.ObjectMeta, true, ValidatePersistentVolumeName)
 	return allErrs
