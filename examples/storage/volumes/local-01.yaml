@@ -7,5 +7,6 @@ metadata:
 spec:
   capacity:
     size: 10Gi
-  hostPath:
-    path: "/tmp/data01"
+  source:
+    hostPath:
+      path: "/tmp/data01"
