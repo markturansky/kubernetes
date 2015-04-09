@@ -182,6 +182,117 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"rbd":             &api.Pod{},
 			"rbd-with-secret": &api.Pod{},
 		},
+		"../examples/cassandra": {
+			"cassandra-controller": &api.ReplicationController{},
+			"cassandra-service":    &api.Service{},
+			"cassandra":            &api.Pod{},
+		},
+		"../examples/celery-rabbitmq": {
+			"celery-controller":   &api.ReplicationController{},
+			"flower-controller":   &api.ReplicationController{},
+			"rabbitmq-controller": &api.ReplicationController{},
+			"rabbitmq-service":    &api.Service{},
+		},
+		"../examples/cluster-dns": {
+			"dns-backend-rc":      &api.ReplicationController{},
+			"dns-backend-service": &api.Service{},
+			"dns-frontend-pod":    &api.Pod{},
+			"namespace-dev":       &api.Namespace{},
+			"namespace-prod":      &api.Namespace{},
+		},
+		"../examples/downward-api": {
+			"dapi-pod": &api.Pod{},
+		},
+		"../examples/elasticsearch": {
+			"apiserver-secret": nil,
+			"music-rc":         &api.ReplicationController{},
+			"music-service":    &api.Service{},
+		},
+		"../examples/explorer": {
+			"pod": &api.Pod{},
+		},
+		"../examples/hazelcast": {
+			"hazelcast-controller": &api.ReplicationController{},
+			"hazelcast-service":    &api.Service{},
+		},
+		"../examples/kubernetes-namespaces": {
+			"namespace-dev":  &api.Namespace{},
+			"namespace-prod": &api.Namespace{},
+		},
+		"../examples/limitrange": {
+			"invalid-pod": &api.Pod{},
+			"limit-range": &api.LimitRange{},
+			"valid-pod":   &api.Pod{},
+		},
+		"../examples/logging-demo": {
+			"synthetic_0_25lps": &api.Pod{},
+			"synthetic_10lps":   &api.Pod{},
+		},
+		"../examples/meteor": {
+			"meteor-controller": &api.ReplicationController{},
+			"meteor-service":    &api.Service{},
+			"mongo-pod":         &api.Pod{},
+			"mongo-service":     &api.Service{},
+		},
+		"../examples/mysql-wordpress-pd": {
+			"mysql-service":     &api.Service{},
+			"mysql":             &api.Pod{},
+			"wordpress-service": &api.Service{},
+			"wordpress":         &api.Pod{},
+		},
+		"../examples/nfs": {
+			"nfs-server-pod":     &api.Pod{},
+			"nfs-server-service": &api.Service{},
+			"nfs-web-pod":        &api.Pod{},
+		},
+		"../examples/node-selection": {
+			"pod": &api.Pod{},
+		},
+		"../examples/openshift-origin": {
+			"openshift-controller": &api.ReplicationController{},
+			"openshift-service":    &api.Service{},
+		},
+		"../examples/phabricator": {
+			"authenticator-controller": &api.ReplicationController{},
+			"phabricator-controller":   &api.ReplicationController{},
+			"phabricator-service":      &api.Service{},
+		},
+		"../examples/redis": {
+			"redis-controller":          &api.ReplicationController{},
+			"redis-master":              &api.Pod{},
+			"redis-proxy":               &api.Pod{},
+			"redis-sentinel-controller": &api.ReplicationController{},
+			"redis-sentinel-service":    &api.Service{},
+		},
+		"../examples/resourcequota": {
+			"resource-quota": &api.ResourceQuota{},
+		},
+		"../examples/rethinkdb": {
+			"admin-pod":      &api.Pod{},
+			"admin-service":  &api.Service{},
+			"driver-service": &api.Service{},
+			"rc":             &api.ReplicationController{},
+		},
+		"../examples/secrets": {
+			"secret-pod": &api.Pod{},
+			"secret":     &api.Secret{},
+		},
+		"../examples/spark": {
+			"spark-master-service":    &api.Service{},
+			"spark-master":            &api.Pod{},
+			"spark-worker-controller": &api.ReplicationController{},
+		},
+		"../examples/storm": {
+			"storm-nimbus-service":    &api.Service{},
+			"storm-nimbus":            &api.Pod{},
+			"storm-worker-controller": &api.ReplicationController{},
+			"zookeeper-service":       &api.Service{},
+			"zookeeper":               &api.Pod{},
+		},
+		"../examples/cephfs/v1beta3": {
+			"cephfs":             &api.Pod{},
+			"cephfs-with-secret": &api.Pod{},
+		},
 	}
 
 	for path, expected := range cases {
