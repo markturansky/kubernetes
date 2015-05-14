@@ -2332,6 +2332,7 @@ func convert_v1beta3_PersistentVolumeSpec_To_api_PersistentVolumeSpec(in *Persis
 	} else {
 		out.ClaimRef = nil
 	}
+	out.RecyclePolicy = newer.RecyclePolicy(in.RecyclePolicy)
 	return nil
 }
 
@@ -2370,6 +2371,7 @@ func convert_api_PersistentVolumeSpec_To_v1beta3_PersistentVolumeSpec(in *newer.
 	} else {
 		out.ClaimRef = nil
 	}
+	out.RecyclePolicy = RecyclePolicy(in.RecyclePolicy)
 	return nil
 }
 
@@ -2378,6 +2380,14 @@ func convert_v1beta3_PersistentVolumeStatus_To_api_PersistentVolumeStatus(in *Pe
 		defaulting.(func(*PersistentVolumeStatus))(in)
 	}
 	out.Phase = newer.PersistentVolumePhase(in.Phase)
+	if in.ClaimRef != nil {
+		out.ClaimRef = new(newer.ObjectReference)
+		if err := convert_v1beta3_ObjectReference_To_api_ObjectReference(in.ClaimRef, out.ClaimRef, s); err != nil {
+			return err
+		}
+	} else {
+		out.ClaimRef = nil
+	}
 	return nil
 }
 
@@ -2386,6 +2396,14 @@ func convert_api_PersistentVolumeStatus_To_v1beta3_PersistentVolumeStatus(in *ne
 		defaulting.(func(*newer.PersistentVolumeStatus))(in)
 	}
 	out.Phase = PersistentVolumePhase(in.Phase)
+	if in.ClaimRef != nil {
+		out.ClaimRef = new(ObjectReference)
+		if err := convert_api_ObjectReference_To_v1beta3_ObjectReference(in.ClaimRef, out.ClaimRef, s); err != nil {
+			return err
+		}
+	} else {
+		out.ClaimRef = nil
+	}
 	return nil
 }
 

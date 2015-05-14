@@ -54,6 +54,13 @@ type Cleaner interface {
 	TearDownAt(dir string) error
 }
 
+type Recycler interface {
+	Volume
+	// Recycle reclaims the resource.  Calls to this method should block until the recycling task is complete.
+	// Any error returned indicates the volume has failed to be reclaimed.  A nil return indicates success.
+	Recycle() error
+}
+
 func RenameDirectory(oldPath, newName string) (string, error) {
 	newPath, err := ioutil.TempDir(path.Dir(oldPath), newName)
 	if err != nil {

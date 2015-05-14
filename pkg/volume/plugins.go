@@ -77,6 +77,9 @@ type PersistentVolumePlugin interface {
 	VolumePlugin
 	// GetAccessModes describes the ways a given volume can be accessed/mounted.
 	GetAccessModes() []api.AccessModeType
+	// NewRecycler creates a new volume.Recycler which knows how to reclaim this resource
+	// after the volume's release from a PersistentVolumeClaim
+	NewRecycler(spec *Spec) (Recycler, error)
 }
 
 // VolumeHost is an interface that plugins can use to access the kubelet.
@@ -217,7 +220,21 @@ func (pm *VolumePluginMgr) FindPluginByName(name string) (VolumePlugin, error) {
 	return pm.plugins[matches[0]], nil
 }
 
-// FindPluginByName fetches a plugin by name or by legacy name.  If no plugin
+// FindPersistentPluginBySpec looks for a persistent volume plugin that can support a given volume
+// specification.  If no plugin is found, return an error
+func (pm *VolumePluginMgr) FindPersistentPluginBySpec(spec *Spec) (PersistentVolumePlugin, error) {
+	plugin, err := pm.FindPluginBySpec(spec)
+	if err != nil {
+		return nil, fmt.Errorf("Could not find volume plugin for spec: %+v", spec)
+	}
+	pvPlugin, err := pm.FindPersistentPluginByName(plugin.Name())
+	if err != nil {
+		return nil, fmt.Errorf("Could not find persistent volume plugin for spec: %+v", plugin.Name())
+	}
+	return pvPlugin, nil
+}
+
+// FindPersistentPluginByName fetches a persistent volume plugin by name.  If no plugin
 // is found, returns error.
 func (pm *VolumePluginMgr) FindPersistentPluginByName(name string) (PersistentVolumePlugin, error) {
 	volumePlugin, err := pm.FindPluginByName(name)

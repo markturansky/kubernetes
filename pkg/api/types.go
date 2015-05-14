@@ -256,11 +256,31 @@ type PersistentVolumeSpec struct {
 	// ClaimRef is expected to be non-nil when bound.
 	// claim.VolumeName is the authoritative bind between PV and PVC.
 	ClaimRef *ObjectReference `json:"claimRef,omitempty"`
+	// RecyclePolicy represents what happens to a persistent volume when released from its claim.
+	// Recycling behavior is dependent on the volume's plugin.
+	RecyclePolicy RecyclePolicy `json:"recyclePolicy,omitempty"`
 }
+
+// RecyclePolicy describes a policy for end-of-life maintenance of persistent volumes
+type RecyclePolicy string
+
+const (
+	// RecycleOnRelease means the volume will be recycled back into the pool of unbound persistent volumes on release from its claim.
+	// The volume plugin must support Recycling.
+	RecycleOnRelease RecyclePolicy = "Recycle"
+	// DeleteOnRelease means the volume will be deleted from Kubernetes on release from its claim.
+	// The volume plugin must support Deletion.
+	DeleteOnRelease RecyclePolicy = "Delete"
+	// RetainOnRelease means the volume will left in its current phase (Released) for manual reclamation by the administrator.
+	// The default policy is Retain.
+	RetainOnRelease RecyclePolicy = "Retain"
+)
 
 type PersistentVolumeStatus struct {
 	// Phase indicates if a volume is available, bound to a claim, or released by a claim
 	Phase PersistentVolumePhase `json:"phase,omitempty"`
+	// ClaimRef is a non-binding reference to the claim bound to this volume
+	ClaimRef *ObjectReference `json:"claimRef,omitempty"`
 }
 
 type PersistentVolumeList struct {
