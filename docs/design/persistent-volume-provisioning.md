@@ -2,19 +2,38 @@
 
 <!-- BEGIN STRIP_FOR_RELEASE -->
 
-<h1>*** PLEASE NOTE: This document applies to the HEAD of the source
-tree only. If you are using a released version of Kubernetes, you almost
-certainly want the docs that go with that version.</h1>
+<img src="http://kubernetes.io/img/warning.png" alt="WARNING"
+     width="25" height="25">
+<img src="http://kubernetes.io/img/warning.png" alt="WARNING"
+     width="25" height="25">
+<img src="http://kubernetes.io/img/warning.png" alt="WARNING"
+     width="25" height="25">
+<img src="http://kubernetes.io/img/warning.png" alt="WARNING"
+     width="25" height="25">
+<img src="http://kubernetes.io/img/warning.png" alt="WARNING"
+     width="25" height="25">
 
-<strong>Documentation for specific releases can be found at
-[releases.k8s.io](http://releases.k8s.io).</strong>
+<h2>PLEASE NOTE: This document applies to the HEAD of the source tree</h2>
+
+If you are using a released version of Kubernetes, you should
+refer to the docs that go with that version.
+
+<strong>
+The latest 1.0.x release of this document can be found
+[here](http://releases.k8s.io/release-1.0/docs/design/persistent-volume-provisioning.md).
+
+Documentation for other releases can be found at
+[releases.k8s.io](http://releases.k8s.io).
+</strong>
+--
 
 <!-- END STRIP_FOR_RELEASE -->
 
 <!-- END MUNGE: UNVERSIONED_WARNING -->
+
 # Persistent Volume Provisioning
 
-This document proposes a model for dynamically provisioning [Persistent Volumes](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/persistent-volumes.md)
+This document proposes a model for dynamically provisioning
 
 ### tl;dr
 
@@ -111,7 +130,7 @@ Static pools of storage (e.g, NFS) will have ```MinimumReplicas``` == ```Maximum
 * watch PersistentVolumes of a particular type as defined by the controller's label selector.
 ** PVs matching the selector but made manually count as replicas if they match the label selector
 ** PVs made manually or from earlier templates may have difference size capacities.  Delete largest first.
-* create a new volume ``` if unboundReplicas < minimumReplicas && totalReplicas <= maximumReplicas``` 
+* create a new volume ``` if unboundReplicas < minimumReplicas && totalReplicas <= maximumReplicas```
 * delete a volume ``` while totalReplicas > maximumReplicas, delete largest volume ```
 
 
@@ -129,9 +148,9 @@ Use of cloud and non-cloud volumes as examples for controllers.
 | gluster  | No, externally provisioned | pre-formatted during provisioning | mount volume, run "rm -rf" on volume | ? | ? | ? |
 | ceph  | No, externally provisioned | pre-formatted during provisioning | mount volume, run "rm -rf" on volume | ? | ? | ? |
 
-#### Recycler implementation 
+#### Recycler implementation
 
-Recyclers will schedule and watch a pod that mounts the specific volume being recycled.  The scrubber pod runs "rm -rf" on the volume.  
+Recyclers will schedule and watch a pod that mounts the specific volume being recycled.  The scrubber pod runs "rm -rf" on the volume.
 Recyclers block while performing their operation.  On successful return, the volume is made Available again and can be bound to a new `PersistentVolumeClaim`.
 
 

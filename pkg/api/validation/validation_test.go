@@ -347,7 +347,41 @@ func TestValidatePersistentVolumes(t *testing.T) {
 			t.Errorf("Unexpected failure for scenario: %s - %+v", name, errs)
 		}
 	}
+}
 
+func TestValidatePersistentVolumeControllers(t *testing.T) {
+
+	scenarios := map[string]struct {
+		isExpectedFailure bool
+		pvctrl            *api.PersistentVolumeController
+	}{
+		"good-volume": {
+			isExpectedFailure: false,
+			pvctrl: &api.PersistentVolumeController{
+				ObjectMeta: api.ObjectMeta{
+					Name: "foo",
+				},
+			},
+		},
+		"invalid-name": {
+			isExpectedFailure: true,
+			pvctrl: &api.PersistentVolumeController{
+				ObjectMeta: api.ObjectMeta{
+					Name: "foo=(*&",
+				},
+			},
+		},
+	}
+
+	for name, scenario := range scenarios {
+		errs := ValidatePersistentVolumeController(scenario.pvctrl)
+		if len(errs) == 0 && scenario.isExpectedFailure {
+			t.Errorf("Unexpected success for scenario: %s", name)
+		}
+		if len(errs) > 0 && !scenario.isExpectedFailure {
+			t.Errorf("Unexpected failure for scenario: %s - %+v", name, errs)
+		}
+	}
 }
 
 func testVolumeClaim(name string, namespace string, spec api.PersistentVolumeClaimSpec) *api.PersistentVolumeClaim {

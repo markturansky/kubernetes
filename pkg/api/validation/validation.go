@@ -558,6 +558,13 @@ func ValidatePersistentVolumeStatusUpdate(newPv, oldPv *api.PersistentVolume) er
 	return allErrs
 }
 
+func ValidatePersistentVolumeController(pvctrl *api.PersistentVolumeController) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	allErrs = append(allErrs, ValidateObjectMeta(&pvctrl.ObjectMeta, false, ValidatePersistentVolumeName).Prefix("metadata")...)
+
+	return allErrs
+}
+
 func ValidatePersistentVolumeClaim(pvc *api.PersistentVolumeClaim) errs.ValidationErrorList {
 	allErrs := ValidateObjectMeta(&pvc.ObjectMeta, true, ValidatePersistentVolumeName)
 	if len(pvc.Spec.AccessModes) == 0 {
