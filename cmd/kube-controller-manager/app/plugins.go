@@ -31,6 +31,11 @@ import (
 	"k8s.io/kubernetes/pkg/volume/nfs"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/cloudprovider"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/gce"
+	"k8s.io/kubernetes/pkg/volume/aws_ebs"
+	"k8s.io/kubernetes/pkg/volume/gce_pd"
 )
 
 // ProbeRecyclableVolumePlugins collects all persistent volume plugins into an easy to use list.
@@ -67,6 +72,29 @@ func ProbeRecyclableVolumePlugins(flags VolumeConfigFlags) []volume.VolumePlugin
 	allPlugins = append(allPlugins, nfs.ProbeVolumePlugins(nfsConfig)...)
 
 	return allPlugins
+}
+
+// newVolumeProvisioners maps a cloud provider to a specific volume plugin.
+func newVolumeProvisioners(cloud cloudprovider.Interface, server *CMServer) map[string]volume.CreatableVolumePlugin {
+	var creater volume.VolumePlugin
+	switch {
+	case cloud != nil && cloud.ProviderName() == aws_cloud.ProviderName:
+		creater = aws_ebs.ProbeVolumePlugins()[0]
+	case cloud != nil && cloud.ProviderName() == gce_cloud.ProviderName:
+		creater = gce_pd.ProbeVolumePlugins()[0]
+	}
+
+	plugins := map[string]volume.CreatableVolumePlugin{
+		"experimental-hostpath": host_path.ProbeVolumePlugins(volume.VolumeConfig{})[0].(volume.CreatableVolumePlugin),
+	}
+
+	if creater != nil {
+		plugins["gold"] = creater.(volume.CreatableVolumePlugin)
+		plugins["silver"] = creater.(volume.CreatableVolumePlugin)
+		plugins["bronze"] = creater.(volume.CreatableVolumePlugin)
+	}
+
+	return plugins
 }
 
 // attemptToLoadRecycler tries decoding a pod from a filepath for use as a recycler for a volume.

@@ -112,6 +112,7 @@ func ProbeVolumePlugins(config VolumeConfig) []VolumePlugin {
 type FakeVolumePlugin struct {
 	PluginName string
 	Host       VolumeHost
+	Config     VolumeConfig
 }
 
 var _ VolumePlugin = &FakeVolumePlugin{}
@@ -139,11 +140,15 @@ func (plugin *FakeVolumePlugin) NewCleaner(volName string, podUID types.UID) (Cl
 }
 
 func (plugin *FakeVolumePlugin) NewRecycler(spec *Spec) (Recycler, error) {
-	return &fakeRecycler{"/attributesTransferredFromSpec"}, nil
+	return NewFakeRecycler(spec, plugin.Host, plugin.Config)
 }
 
 func (plugin *FakeVolumePlugin) NewDeleter(spec *Spec) (Deleter, error) {
 	return &FakeDeleter{"/attributesTransferredFromSpec"}, nil
+}
+
+func (plugin *FakeVolumePlugin) NewCreater(options VolumeOptions) (Creater, error) {
+	return &FakeCreater{options, plugin.Host}, nil
 }
 
 func (plugin *FakeVolumePlugin) GetAccessModes() []api.PersistentVolumeAccessMode {
@@ -213,4 +218,33 @@ func (fd *FakeDeleter) Delete() error {
 
 func (fd *FakeDeleter) GetPath() string {
 	return fd.path
+}
+
+type FakeCreater struct {
+	Options VolumeOptions
+	Host    VolumeHost
+}
+
+func (fc *FakeCreater) Create() (*api.PersistentVolume, error) {
+	return &api.PersistentVolume{
+		ObjectMeta: api.ObjectMeta{
+			GenerateName: "pv-hostpath-",
+			Labels: map[string]string{
+				"createdby": "hostpath-dynamic-provisioner",
+			},
+			Annotations: map[string]string{},
+		},
+		Spec: api.PersistentVolumeSpec{
+			PersistentVolumeReclaimPolicy: fc.Options.PersistentVolumeReclaimPolicy,
+			AccessModes:                   fc.Options.AccessModes,
+			Capacity: api.ResourceList{
+				api.ResourceName(api.ResourceStorage): fc.Options.Capacity,
+			},
+			PersistentVolumeSource: api.PersistentVolumeSource{
+				HostPath: &api.HostPathVolumeSource{
+					Path: "/tmp/foo",
+				},
+			},
+		},
+	}, nil
 }

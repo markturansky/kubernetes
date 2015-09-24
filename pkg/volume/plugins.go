@@ -23,6 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/resource"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/types"
@@ -42,12 +43,14 @@ type VolumeOptions struct {
 	// The attributes below are required by volume.Creater
 	// perhaps CreaterVolumeOptions struct?
 
-	// CapacityMB is the size in MB of a volume.
-	CapacityMB int
+	// Capacity is the size of a volume.
+	Capacity resource.Quantity
 	// AccessModes of a volume
 	AccessModes []api.PersistentVolumeAccessMode
 	// Reclamation policy for a persistent volume
 	PersistentVolumeReclaimPolicy api.PersistentVolumeReclaimPolicy
+	// Quality of Service tier requested by the user
+	QOSTier string
 }
 
 // VolumePlugin is an interface to volume plugins that can be used on a

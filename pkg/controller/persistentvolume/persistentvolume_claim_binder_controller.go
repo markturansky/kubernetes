@@ -42,6 +42,10 @@ type PersistentVolumeClaimBinder struct {
 	client           binderClient
 	stopChannels     map[string]chan struct{}
 	lock             sync.RWMutex
+
+	// these maps contain volume:claim and claim:volume mappings
+	// all volumes 'provisioned for' a specific claim will be recorded here to avoid provisioning dupes
+	provisionedVolumes map[string]string
 }
 
 // NewPersistentVolumeClaimBinder creates a new PersistentVolumeClaimBinder
@@ -49,8 +53,9 @@ func NewPersistentVolumeClaimBinder(kubeClient client.Interface, syncPeriod time
 	volumeIndex := NewPersistentVolumeOrderedIndex()
 	binderClient := NewBinderClient(kubeClient)
 	binder := &PersistentVolumeClaimBinder{
-		volumeIndex: volumeIndex,
-		client:      binderClient,
+		volumeIndex:        volumeIndex,
+		client:             binderClient,
+		provisionedVolumes: map[string]string{},
 	}
 
 	_, volumeController := framework.NewInformer(
@@ -84,8 +89,7 @@ func NewPersistentVolumeClaimBinder(kubeClient client.Interface, syncPeriod time
 		framework.ResourceEventHandlerFuncs{
 			AddFunc:    binder.addClaim,
 			UpdateFunc: binder.updateClaim,
-			// no DeleteFunc needed.  a claim requires no clean-up.
-			// syncVolume handles the missing claim
+			DeleteFunc: binder.deleteClaim,
 		},
 	)
 
@@ -99,7 +103,7 @@ func (binder *PersistentVolumeClaimBinder) addVolume(obj interface{}) {
 	binder.lock.Lock()
 	defer binder.lock.Unlock()
 	volume := obj.(*api.PersistentVolume)
-	err := syncVolume(binder.volumeIndex, binder.client, volume)
+	err := syncVolume(binder.volumeIndex, binder.client, volume, binder.provisionedVolumes)
 	if err != nil {
 		glog.Errorf("PVClaimBinder could not add volume %s: %+v", volume.Name, err)
 	}
@@ -110,7 +114,7 @@ func (binder *PersistentVolumeClaimBinder) updateVolume(oldObj, newObj interface
 	defer binder.lock.Unlock()
 	newVolume := newObj.(*api.PersistentVolume)
 	binder.volumeIndex.Update(newVolume)
-	err := syncVolume(binder.volumeIndex, binder.client, newVolume)
+	err := syncVolume(binder.volumeIndex, binder.client, newVolume, binder.provisionedVolumes)
 	if err != nil {
 		glog.Errorf("PVClaimBinder could not update volume %s: %+v", newVolume.Name, err)
 	}
@@ -119,6 +123,10 @@ func (binder *PersistentVolumeClaimBinder) updateVolume(oldObj, newObj interface
 func (binder *PersistentVolumeClaimBinder) deleteVolume(obj interface{}) {
 	binder.lock.Lock()
 	defer binder.lock.Unlock()
+	if _, ok := obj.(cache.DeletedFinalStateUnknown); ok {
+		glog.V(5).Info("Missed delete event for a persistent volume")
+		return
+	}
 	volume := obj.(*api.PersistentVolume)
 	binder.volumeIndex.Delete(volume)
 }
@@ -126,8 +134,12 @@ func (binder *PersistentVolumeClaimBinder) deleteVolume(obj interface{}) {
 func (binder *PersistentVolumeClaimBinder) addClaim(obj interface{}) {
 	binder.lock.Lock()
 	defer binder.lock.Unlock()
+	if _, ok := obj.(cache.DeletedFinalStateUnknown); ok {
+		glog.V(5).Info("Missed delete event for a persistent volume")
+		return
+	}
 	claim := obj.(*api.PersistentVolumeClaim)
-	err := syncClaim(binder.volumeIndex, binder.client, claim)
+	err := syncClaim(binder.volumeIndex, binder.client, claim, binder.provisionedVolumes)
 	if err != nil {
 		glog.Errorf("PVClaimBinder could not add claim %s: %+v", claim.Name, err)
 	}
@@ -137,14 +149,53 @@ func (binder *PersistentVolumeClaimBinder) updateClaim(oldObj, newObj interface{
 	binder.lock.Lock()
 	defer binder.lock.Unlock()
 	newClaim := newObj.(*api.PersistentVolumeClaim)
-	err := syncClaim(binder.volumeIndex, binder.client, newClaim)
+	err := syncClaim(binder.volumeIndex, binder.client, newClaim, binder.provisionedVolumes)
 	if err != nil {
 		glog.Errorf("PVClaimBinder could not update claim %s: %+v", newClaim.Name, err)
 	}
 }
 
-func syncVolume(volumeIndex *persistentVolumeOrderedIndex, binderClient binderClient, volume *api.PersistentVolume) (err error) {
+func (binder *PersistentVolumeClaimBinder) deleteClaim(obj interface{}) {
+	binder.lock.Lock()
+	defer binder.lock.Unlock()
+	if _, ok := obj.(cache.DeletedFinalStateUnknown); ok {
+		glog.V(5).Info("Missed delete event for a persistent volume claim")
+
+		binder.reconcileProvisionedClaims()
+
+		return
+	}
+	claim, _ := obj.(*api.PersistentVolumeClaim)
+	if claim == nil {
+		glog.V(5).Infof("Removing claim %s from map of provisioned claims", ClaimToProvisionableKey(claim))
+		return
+	}
+	if _, exists := binder.provisionedVolumes[ClaimToProvisionableKey(claim)]; exists {
+		glog.V(5).Infof("Removing claim %s from map of provisioned claims", ClaimToProvisionableKey(claim))
+		delete(binder.provisionedVolumes, ClaimToProvisionableKey(claim))
+	}
+}
+
+func (binder *PersistentVolumeClaimBinder) reconcileProvisionedClaims() {
+	for claimName, volumeName := range binder.provisionedVolumes {
+		if _, exists, _ := binder.volumeIndex.GetByKey(volumeName); !exists {
+			delete(binder.provisionedVolumes, claimName)
+			glog.Fatalf("darn tootin")
+		}
+	}
+}
+
+func syncVolume(volumeIndex *persistentVolumeOrderedIndex, binderClient binderClient, volume *api.PersistentVolume, provisionedVolumes map[string]string) (err error) {
 	glog.V(5).Infof("Synchronizing PersistentVolume[%s], current phase: %s\n", volume.Name, volume.Status.Phase)
+
+	// a volume can be specifically provisioned for a PVClaim.
+	// Keep track of all provisioned volumes so we don't create new ones in response to claims.
+	// provisioned volumes are tracked by claim name for fast lookup.
+	if createdForClaim, ok := volume.Annotations[provisionedForKey]; ok {
+		if _, contains := provisionedVolumes[createdForClaim]; !contains {
+			provisionedVolumes[createdForClaim] = volume.Name
+		}
+	}
 
 	// volumes can be in one of the following states:
 	//
@@ -259,7 +310,7 @@ func syncVolume(volumeIndex *persistentVolumeOrderedIndex, binderClient binderCl
 	return nil
 }
 
-func syncClaim(volumeIndex *persistentVolumeOrderedIndex, binderClient binderClient, claim *api.PersistentVolumeClaim) (err error) {
+func syncClaim(volumeIndex *persistentVolumeOrderedIndex, binderClient binderClient, claim *api.PersistentVolumeClaim, provisionedVolumes map[string]string) (err error) {
 	glog.V(5).Infof("Synchronizing PersistentVolumeClaim[%s]\n", claim.Name)
 
 	// claims can be in one of the following states:
@@ -277,7 +328,29 @@ func syncClaim(volumeIndex *persistentVolumeOrderedIndex, binderClient binderCli
 			return err
 		}
 		if volume == nil {
-			return fmt.Errorf("A volume match does not exist for persistent claim: %s", claim.Name)
+			if _, exists := claim.Annotations[qosProvisioningKey]; !exists {
+				return fmt.Errorf("A volume match does not exist for persistent claim: %s", claim.Name)
+			}
+
+			// no match exists currently, but the PVC wants to have one provisioned.
+			// verify a PV is not already provisioned for this claim.
+			if volumeName, exists := provisionedVolumes[ClaimToProvisionableKey(claim)]; exists {
+				return fmt.Errorf("Persistent Volume '%s' already provisioned for claim %s , but it failed to match", volumeName, provisionedVolumes[ClaimToProvisionableKey(claim)])
+			}
+
+			if _, exists := claim.Annotations[provisionableKey]; !exists {
+				// mark it with the provisionable annotation so that the provisioner can process the request
+				claim.Annotations[provisionableKey] = "true"
+				claim, err = binderClient.UpdatePersistentVolumeClaim(claim)
+				if err != nil {
+					delete(claim.Annotations, provisionableKey)
+					return fmt.Errorf("Error adding provisionable annotation to claim: %+v\n", err)
+				}
+			}
+
+			// nothing left to process for this claim.  The provisioner, if configured and available for the cluster, will
+			// create a volume specifically for this claim.  The volume and claim will be matched during this controller's next sync period.
+			return nil
 		}
 
 		// make a binding reference to the claim.
@@ -333,7 +406,11 @@ func syncClaim(volumeIndex *persistentVolumeOrderedIndex, binderClient binderCli
 
 	if currentPhase != nextPhase {
 		claim.Status.Phase = nextPhase
-		binderClient.UpdatePersistentVolumeClaimStatus(claim)
+		claim, err := binderClient.UpdatePersistentVolumeClaimStatus(claim)
+		if err != nil {
+			// rollback in case of error
+			claim.Status.Phase = currentPhase
+		}
 	}
 	return nil
 }

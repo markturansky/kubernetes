@@ -43,18 +43,21 @@ var _ volume.VolumeHost = &PersistentVolumeRecycler{}
 // available again for a new claim.
 type PersistentVolumeRecycler struct {
 	volumeController *framework.Controller
-	stopChannel      chan struct{}
-	client           recyclerClient
-	kubeClient       client.Interface
-	pluginMgr        volume.VolumePluginMgr
+
+	stopChannel   chan struct{}
+	client        recyclerClient
+	kubeClient    client.Interface
+	cloudProvider cloudprovider.Interface
+	pluginMgr     volume.VolumePluginMgr
 }
 
 // PersistentVolumeRecycler creates a new PersistentVolumeRecycler
-func NewPersistentVolumeRecycler(kubeClient client.Interface, syncPeriod time.Duration, plugins []volume.VolumePlugin) (*PersistentVolumeRecycler, error) {
+func NewPersistentVolumeRecycler(kubeClient client.Interface, syncPeriod time.Duration, plugins []volume.VolumePlugin, cp cloudprovider.Interface) (*PersistentVolumeRecycler, error) {
 	recyclerClient := NewRecyclerClient(kubeClient)
 	recycler := &PersistentVolumeRecycler{
-		client:     recyclerClient,
-		kubeClient: kubeClient,
+		client:        recyclerClient,
+		kubeClient:    kubeClient,
+		cloudProvider: cp,
 	}
 
 	if err := recycler.pluginMgr.InitPlugins(plugins, recycler); err != nil {
@@ -283,7 +286,7 @@ func (f *PersistentVolumeRecycler) NewWrapperCleaner(spec *volume.Spec, podUID t
 }
 
 func (f *PersistentVolumeRecycler) GetCloudProvider() cloudprovider.Interface {
-	return nil
+	return f.cloudProvider
 }
 
 func (f *PersistentVolumeRecycler) GetMounter() mount.Interface {

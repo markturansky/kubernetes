@@ -22,7 +22,6 @@ import (
 	"regexp"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/volume"
@@ -251,14 +250,15 @@ func (r *hostPathCreater) Create() (*api.PersistentVolume, error) {
 		ObjectMeta: api.ObjectMeta{
 			GenerateName: "pv-hostpath-",
 			Labels: map[string]string{
-				"createdby": "hostpath dynamic provisioner",
+				"createdby": "hostpath-dynamic-provisioner",
 			},
+			Annotations: map[string]string{},
 		},
 		Spec: api.PersistentVolumeSpec{
 			PersistentVolumeReclaimPolicy: r.options.PersistentVolumeReclaimPolicy,
 			AccessModes:                   r.options.AccessModes,
 			Capacity: api.ResourceList{
-				api.ResourceName(api.ResourceStorage): resource.MustParse(fmt.Sprintf("%dMi", r.options.CapacityMB)),
+				api.ResourceName(api.ResourceStorage): r.options.Capacity,
 			},
 			PersistentVolumeSource: api.PersistentVolumeSource{
 				HostPath: &api.HostPathVolumeSource{

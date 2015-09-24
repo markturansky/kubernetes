@@ -156,7 +156,7 @@ func TestCreater(t *testing.T) {
 	if err != nil {
 		t.Errorf("Can't find the plugin by name")
 	}
-	creater, err := plug.NewCreater(volume.VolumeOptions{CapacityMB: 100, PersistentVolumeReclaimPolicy: api.PersistentVolumeReclaimDelete})
+	creater, err := plug.NewCreater(volume.VolumeOptions{Capacity: resource.MustParse("1Gi"), PersistentVolumeReclaimPolicy: api.PersistentVolumeReclaimDelete})
 	if err != nil {
 		t.Errorf("Failed to make a new Creater: %v", err)
 	}
@@ -167,7 +167,7 @@ func TestCreater(t *testing.T) {
 	if pv.Spec.HostPath.Path == "" {
 		t.Errorf("Expected pv.Spec.HostPath.Path to not be empty: %#v", pv)
 	}
-	expectedCapacity := resource.NewQuantity(100*1024*1024, resource.BinarySI)
+	expectedCapacity := resource.NewQuantity(1*1024*1024*1024, resource.BinarySI)
 	actualCapacity := pv.Spec.Capacity[api.ResourceStorage]
 	expectedAmt := expectedCapacity.Value()
 	actualAmt := actualCapacity.Value()

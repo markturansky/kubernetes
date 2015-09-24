@@ -206,19 +206,20 @@ func TestBindingWithExamples(t *testing.T) {
 		client:     mockClient,
 		pluginMgr:  plugMgr,
 	}
+	provisionedVolumes := make(map[string]string)
 
 	// adds the volume to the index, making the volume available
-	syncVolume(volumeIndex, mockClient, pv)
+	syncVolume(volumeIndex, mockClient, pv, provisionedVolumes)
 	if pv.Status.Phase != api.VolumeAvailable {
 		t.Errorf("Expected phase %s but got %s", api.VolumeBound, pv.Status.Phase)
 	}
 
 	// an initial sync for a claim will bind it to an unbound volume, triggers state change
-	syncClaim(volumeIndex, mockClient, claim)
+	syncClaim(volumeIndex, mockClient, claim, provisionedVolumes)
 	// state change causes another syncClaim to update statuses
-	syncClaim(volumeIndex, mockClient, claim)
+	syncClaim(volumeIndex, mockClient, claim, provisionedVolumes)
 	// claim updated volume's status, causing an update and syncVolume call
-	syncVolume(volumeIndex, mockClient, pv)
+	syncVolume(volumeIndex, mockClient, pv, provisionedVolumes)
 
 	if pv.Spec.ClaimRef == nil {
 		t.Errorf("Expected ClaimRef but got nil for pv.Status.ClaimRef: %+v\n", pv)
@@ -240,7 +241,7 @@ func TestBindingWithExamples(t *testing.T) {
 
 	// pretend the user deleted their claim
 	mockClient.claim = nil
-	syncVolume(volumeIndex, mockClient, pv)
+	syncVolume(volumeIndex, mockClient, pv, provisionedVolumes)
 
 	if pv.Status.Phase != api.VolumeReleased {
 		t.Errorf("Expected phase %s but got %s", api.VolumeReleased, pv.Status.Phase)
@@ -262,7 +263,7 @@ func TestBindingWithExamples(t *testing.T) {
 
 	// after the recycling changes the phase to Pending, the binder picks up again
 	// to remove any vestiges of binding and make the volume Available again
-	syncVolume(volumeIndex, mockClient, pv)
+	syncVolume(volumeIndex, mockClient, pv, provisionedVolumes)
 
 	if pv.Status.Phase != api.VolumeAvailable {
 		t.Errorf("Expected phase %s but got %s", api.VolumeAvailable, pv.Status.Phase)
@@ -300,6 +301,7 @@ func TestMissingFromIndex(t *testing.T) {
 		volume: pv,
 		claim:  claim,
 	}
+	provisionedVolumes := make(map[string]string)
 
 	// the default value of the PV is Pending.
 	// if has previously been processed by the binder, it's status in etcd would be Available.
@@ -307,21 +309,21 @@ func TestMissingFromIndex(t *testing.T) {
 	pv.Status.Phase = api.VolumeAvailable
 
 	// adds the volume to the index, making the volume available
-	syncVolume(volumeIndex, mockClient, pv)
+	syncVolume(volumeIndex, mockClient, pv, provisionedVolumes)
 	if pv.Status.Phase != api.VolumeAvailable {
 		t.Errorf("Expected phase %s but got %s", api.VolumeBound, pv.Status.Phase)
 	}
 
 	// an initial sync for a claim will bind it to an unbound volume, triggers state change
-	err = syncClaim(volumeIndex, mockClient, claim)
+	err = syncClaim(volumeIndex, mockClient, claim, provisionedVolumes)
 	if err != nil {
 		t.Fatalf("Expected Clam to be bound, instead got an error: %+v\n", err)
 	}
 
 	// state change causes another syncClaim to update statuses
-	syncClaim(volumeIndex, mockClient, claim)
+	syncClaim(volumeIndex, mockClient, claim, provisionedVolumes)
 	// claim updated volume's status, causing an update and syncVolume call
-	syncVolume(volumeIndex, mockClient, pv)
+	syncVolume(volumeIndex, mockClient, pv, provisionedVolumes)
 
 	if pv.Spec.ClaimRef == nil {
 		t.Errorf("Expected ClaimRef but got nil for pv.Status.ClaimRef: %+v\n", pv)
@@ -343,10 +345,43 @@ func TestMissingFromIndex(t *testing.T) {
 
 	// pretend the user deleted their claim
 	mockClient.claim = nil
-	syncVolume(volumeIndex, mockClient, pv)
+	syncVolume(volumeIndex, mockClient, pv, provisionedVolumes)
 
 	if pv.Status.Phase != api.VolumeReleased {
 		t.Errorf("Expected phase %s but got %s", api.VolumeReleased, pv.Status.Phase)
+	}
+}
+
+func TestProvisionableClaim(t *testing.T) {
+
+	claim := &api.PersistentVolumeClaim{
+		ObjectMeta: api.ObjectMeta{
+			Annotations: map[string]string{
+				qosProvisioningKey: "foo",
+			},
+		},
+		Spec: api.PersistentVolumeClaimSpec{
+			AccessModes: []api.PersistentVolumeAccessMode{api.ReadWriteOnce},
+			Resources: api.ResourceRequirements{
+				Requests: api.ResourceList{
+					api.ResourceName(api.ResourceStorage): resource.MustParse("3Gi"),
+				},
+			},
+		},
+		Status: api.PersistentVolumeClaimStatus{
+			Phase: api.ClaimPending,
+		},
+	}
+
+	volumeIndex := NewPersistentVolumeOrderedIndex()
+	mockClient := &mockBinderClient{}
+	provisionedVolumes := map[string]string{}
+	provisionedVolumes["foo"] = "bar"
+
+	// adds the volume to the index, making the volume available
+	syncClaim(volumeIndex, mockClient, claim, provisionedVolumes)
+	if _, exists := claim.Annotations[provisionableKey]; !exists {
+		t.Errorf("Expected provisionable annotation on claim but it was not found: %+v", claim.Annotations)
 	}
 }
 
@@ -381,7 +416,8 @@ func (c *mockBinderClient) GetPersistentVolumeClaim(namespace, name string) (*ap
 }
 
 func (c *mockBinderClient) UpdatePersistentVolumeClaim(claim *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error) {
-	return claim, nil
+	c.claim = claim
+	return c.claim, nil
 }
 
 func (c *mockBinderClient) UpdatePersistentVolumeClaimStatus(claim *api.PersistentVolumeClaim) (*api.PersistentVolumeClaim, error) {

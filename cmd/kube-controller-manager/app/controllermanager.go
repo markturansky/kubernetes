@@ -94,6 +94,7 @@ type CMServer struct {
 	AllocateNodeCIDRs  bool
 	EnableProfiling    bool
 	EnableExperimental bool
+	EnablePersistentVolumeProvisioner bool
 
 	Master     string
 	Kubeconfig string
@@ -118,6 +119,7 @@ func NewCMServer() *CMServer {
 		RegisterRetryCount:                10,
 		PodEvictionTimeout:                5 * time.Minute,
 		ClusterName:                       "kubernetes",
+		EnablePersistentVolumeProvisioner: true,
 		VolumeConfigFlags: VolumeConfigFlags{
 			// default values here
 			PersistentVolumeRecyclerMinimumTimeoutNFS:        300,
@@ -189,6 +191,7 @@ func (s *CMServer) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.Kubeconfig, "kubeconfig", s.Kubeconfig, "Path to kubeconfig file with authorization and master location information.")
 	fs.StringVar(&s.RootCAFile, "root-ca-file", s.RootCAFile, "If set, this root certificate authority will be included in service account's token secret. This must be a valid PEM-encoded CA bundle.")
 	fs.BoolVar(&s.EnableExperimental, "enable-experimental", s.EnableExperimental, "Enables experimental controllers (requires enabling experimental API on apiserver).")
+	fs.BoolVar(&s.EnablePersistentVolumeProvisioner, "enable-pv-provisioner", s.EnablePersistentVolumeProvisioner, "Enables PersistentVolume provisioning in a cloud environment. Defaults to true. This feature is experimental and will likely change in the future.")
 }
 
 // Run runs the CMServer.  This should never exit.
@@ -291,11 +294,20 @@ func (s *CMServer) Run(_ []string) error {
 	pvclaimBinder := volumeclaimbinder.NewPersistentVolumeClaimBinder(kubeClient, s.PVClaimBinderSyncPeriod)
 	pvclaimBinder.Run()
 
-	pvRecycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(kubeClient, s.PVClaimBinderSyncPeriod, ProbeRecyclableVolumePlugins(s.VolumeConfigFlags))
+	pvRecycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(kubeClient, s.PVClaimBinderSyncPeriod, ProbeRecyclableVolumePlugins(s.VolumeConfigFlags), cloud)
 	if err != nil {
 		glog.Fatalf("Failed to start persistent volume recycler: %+v", err)
 	}
 	pvRecycler.Run()
+
+	if s.EnablePersistentVolumeProvisioner {
+		provisioners := newVolumeProvisioners(cloud, s)
+		pvProvisioner, err := volumeclaimbinder.NewPersistentVolumeProvisioner(kubeClient, s.PVClaimBinderSyncPeriod, provisioners, cloud)
+		if err != nil {
+			glog.Fatalf("Failed to start persistent volume provisioner: %+v", err)
+		}
+		pvProvisioner.Run()
+	}
 
 	var rootCA []byte
 

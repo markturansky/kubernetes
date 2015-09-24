@@ -71,7 +71,13 @@ duration-sec
 e2e-verify-service-account
 e2e-output-dir
 enable-debugging-handlers
+<<<<<<< HEAD
 enable-experimental
+=======
+enable-horizontal-pod-autoscaler
+enable-deployment-controller
+enable-pv-provisioner
+>>>>>>> Added PersistentVolumeProvisioner
 enable-server
 etcd-config
 etcd-prefix
