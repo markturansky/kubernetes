@@ -152,13 +152,11 @@ func (s *CMServer) Run(_ []string) error {
 	namespaceController := namespacecontroller.NewNamespaceController(kubeClient, false, s.NamespaceSyncPeriod)
 	namespaceController.Run()
 
-	pvclaimBinder := volumeclaimbinder.NewPersistentVolumeClaimBinder(kubeClient, s.PVClaimBinderSyncPeriod)
-	pvclaimBinder.Run()
-	pvRecycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(kubeClient, s.PVClaimBinderSyncPeriod, app.ProbeRecyclableVolumePlugins(s.VolumeConfigFlags))
+	pvController, err := persistentvolumecontroller.NewPersistentVolumeController(persistentvolumecontroller.NewControllerClient(kubeClient), s.PVClaimBinderSyncPeriod, app.ProbeRecyclableVolumePlugins(s.VolumeConfigFlags), app.NewVolumeProvisionersForCloud(cloud), cloud)
 	if err != nil {
-		glog.Fatalf("Failed to start persistent volume recycler: %+v", err)
+		glog.Fatalf("Failed to start persistent volume controller: %+v", err)
 	}
-	pvRecycler.Run()
+	pvController.Run()
 
 	var rootCA []byte
 
