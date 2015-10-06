@@ -67,7 +67,7 @@ var _ volume.VolumePlugin = &hostPathPlugin{}
 var _ volume.PersistentVolumePlugin = &hostPathPlugin{}
 var _ volume.RecyclableVolumePlugin = &hostPathPlugin{}
 var _ volume.DeletableVolumePlugin = &hostPathPlugin{}
-var _ volume.CreatableVolumePlugin = &hostPathPlugin{}
+var _ volume.ProvisionableVolumePlugin = &hostPathPlugin{}
 
 const (
 	hostPathPluginName = "kubernetes.io/host-path"
@@ -239,13 +239,15 @@ type hostPathCreater struct {
 
 // Create for hostPath simply creates a local /tmp/hostpath_pv/%s directory as a new PersistentVolume.
 // This Creater is meant for development and testing only and WILL NOT WORK in a multi-node cluster.
-func (r *hostPathCreater) Create() (*api.PersistentVolume, error) {
-	fullpath := fmt.Sprintf("/tmp/hostpath_pv/%s", util.NewUUID())
-	err := os.MkdirAll(fullpath, 0750)
-	if err != nil {
-		return nil, err
+func (r *hostPathCreater) Provision(pv *api.PersistentVolume) error {
+	if pv.Spec.HostPath == nil {
+		return fmt.Errorf("pv.Spec.HostPath cannot be nil")
 	}
+	return os.MkdirAll(pv.Spec.HostPath.Path, 0750)
+}
 
+func (r *hostPathCreater) NewPersistentVolumeTemplate() (*api.PersistentVolume, error) {
+	fullpath := fmt.Sprintf("/tmp/hostpath_pv/%s", util.NewUUID())
 	return &api.PersistentVolume{
 		ObjectMeta: api.ObjectMeta{
 			GenerateName: "pv-hostpath-",

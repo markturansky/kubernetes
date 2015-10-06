@@ -225,10 +225,11 @@ type FakeCreater struct {
 	Host    VolumeHost
 }
 
-func (fc *FakeCreater) Create() (*api.PersistentVolume, error) {
+func (fc *FakeCreater) NewPersistentVolumeTemplate() (*api.PersistentVolume, error) {
+	fullpath := fmt.Sprintf("/tmp/hostpath_pv/%s", util.NewUUID())
 	return &api.PersistentVolume{
 		ObjectMeta: api.ObjectMeta{
-			GenerateName: "pv-hostpath-",
+			GenerateName: "pv-fakeplugin-",
 			Labels: map[string]string{
 				"createdby": "hostpath-dynamic-provisioner",
 			},
@@ -242,9 +243,13 @@ func (fc *FakeCreater) Create() (*api.PersistentVolume, error) {
 			},
 			PersistentVolumeSource: api.PersistentVolumeSource{
 				HostPath: &api.HostPathVolumeSource{
-					Path: "/tmp/foo",
+					Path: fullpath,
 				},
 			},
 		},
 	}, nil
+}
+
+func (fc *FakeCreater) Provision(pv *api.PersistentVolume) error {
+	return nil
 }

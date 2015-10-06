@@ -160,7 +160,7 @@ func TestCreater(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to make a new Creater: %v", err)
 	}
-	pv, err := creater.Create()
+	pv, err := creater.NewPersistentVolumeTemplate()
 	if err != nil {
 		t.Errorf("Unexpected error creating volume: %v", err)
 	}

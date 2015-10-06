@@ -22,20 +22,22 @@ import (
 	// given binary target.
 
 	//Cloud providers
+	"k8s.io/kubernetes/pkg/cloudprovider"
 	_ "k8s.io/kubernetes/pkg/cloudprovider/providers"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/gce"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/openstack"
 
 	// Volume plugins
 	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/volume"
+	"k8s.io/kubernetes/pkg/volume/aws_ebs"
+	"k8s.io/kubernetes/pkg/volume/cinder"
+	"k8s.io/kubernetes/pkg/volume/gce_pd"
 	"k8s.io/kubernetes/pkg/volume/host_path"
 	"k8s.io/kubernetes/pkg/volume/nfs"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/cloudprovider"
-	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
-	"k8s.io/kubernetes/pkg/cloudprovider/providers/gce"
-	"k8s.io/kubernetes/pkg/volume/aws_ebs"
-	"k8s.io/kubernetes/pkg/volume/gce_pd"
 )
 
 // ProbeRecyclableVolumePlugins collects all persistent volume plugins into an easy to use list.
@@ -74,24 +76,26 @@ func ProbeRecyclableVolumePlugins(flags VolumeConfigFlags) []volume.VolumePlugin
 	return allPlugins
 }
 
-// newVolumeProvisioners maps a cloud provider to a specific volume plugin.
-func newVolumeProvisioners(cloud cloudprovider.Interface, server *CMServer) map[string]volume.CreatableVolumePlugin {
+// NewVolumeProvisionersForCloud maps a cloud provider to a specific volume plugin.
+func NewVolumeProvisionersForCloud(cloud cloudprovider.Interface) map[string]volume.ProvisionableVolumePlugin {
 	var creater volume.VolumePlugin
 	switch {
 	case cloud != nil && cloud.ProviderName() == aws_cloud.ProviderName:
 		creater = aws_ebs.ProbeVolumePlugins()[0]
 	case cloud != nil && cloud.ProviderName() == gce_cloud.ProviderName:
 		creater = gce_pd.ProbeVolumePlugins()[0]
+	case cloud != nil && cloud.ProviderName() == openstack.ProviderName:
+		creater = cinder.ProbeVolumePlugins()[0]
 	}
 
-	plugins := map[string]volume.CreatableVolumePlugin{
-		"experimental-hostpath": host_path.ProbeVolumePlugins(volume.VolumeConfig{})[0].(volume.CreatableVolumePlugin),
+	plugins := map[string]volume.ProvisionableVolumePlugin{
+		"experimental-hostpath": host_path.ProbeVolumePlugins(volume.VolumeConfig{})[0].(volume.ProvisionableVolumePlugin),
 	}
 
 	if creater != nil {
-		plugins["gold"] = creater.(volume.CreatableVolumePlugin)
-		plugins["silver"] = creater.(volume.CreatableVolumePlugin)
-		plugins["bronze"] = creater.(volume.CreatableVolumePlugin)
+		plugins["gold"] = creater.(volume.ProvisionableVolumePlugin)
+		plugins["silver"] = creater.(volume.ProvisionableVolumePlugin)
+		plugins["bronze"] = creater.(volume.ProvisionableVolumePlugin)
 	}
 
 	return plugins

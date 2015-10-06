@@ -109,8 +109,8 @@ type DeletableVolumePlugin interface {
 	NewDeleter(spec *Spec) (Deleter, error)
 }
 
-// CreatableVolumePlugin is an extended interface of VolumePlugin and is used to create volumes for the cluster.
-type CreatableVolumePlugin interface {
+// ProvisionableVolumePlugin is an extended interface of VolumePlugin and is used to create volumes for the cluster.
+type ProvisionableVolumePlugin interface {
 	VolumePlugin
 	// NewCreater creates a new volume.Creater which knows how to create PersistentVolumes in accordance with
 	// the plugin's underlying storage provider
@@ -365,13 +365,13 @@ func (pm *VolumePluginMgr) FindDeletablePluginBySpec(spec *Spec) (DeletableVolum
 
 // FindCreatablePluginBySpec fetches a persistent volume plugin by name.  If no plugin
 // is found, returns error.
-func (pm *VolumePluginMgr) FindCreatablePluginBySpec(spec *Spec) (CreatableVolumePlugin, error) {
+func (pm *VolumePluginMgr) FindCreatablePluginBySpec(spec *Spec) (ProvisionableVolumePlugin, error) {
 	volumePlugin, err := pm.FindPluginBySpec(spec)
 	if err != nil {
 		return nil, err
 	}
-	if creatableVolumePlugin, ok := volumePlugin.(CreatableVolumePlugin); ok {
-		return creatableVolumePlugin, nil
+	if provisionableVolumePlugin, ok := volumePlugin.(ProvisionableVolumePlugin); ok {
+		return provisionableVolumePlugin, nil
 	}
 	return nil, fmt.Errorf("no creatable volume plugin matched")
 }
