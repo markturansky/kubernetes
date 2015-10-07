@@ -72,6 +72,10 @@ func NewPersistentVolumeController(client controllerClient, syncPeriod time.Dura
 		return nil, fmt.Errorf("Could not initialize volume plugins for PersistentVolumeController: %+v", err)
 	}
 
+	for _, p := range provisionerPlugins {
+		p.Init(controller)
+	}
+
 	controller.volumeStore, controller.volumeController = framework.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func() (runtime.Object, error) {
