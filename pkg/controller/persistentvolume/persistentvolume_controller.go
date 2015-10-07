@@ -407,8 +407,8 @@ func (controller *PersistentVolumeController) reconcileVolume(pv *api.Persistent
 	claim := obj.(*api.PersistentVolumeClaim)
 
 	// security check -- claim might not yet have been matched to the volume.
-	if pv.Name != claim.Spec.VolumeName {
-		glog.V(5).Infof("PersistentVolume[%s] - security mismatch.  Expecting %s but found %s", pv.Name, pv.Name, pv.Spec.ClaimRef.Name)
+	if pv.Name != claim.Spec.VolumeName && pv.Annotations[provisionedForKey] != ClaimToProvisionableKey(claim) {
+		glog.V(5).Infof("PersistentVolume[%s] - security mismatch.  Expecting %s but found %s", pv.Name, pv.Name, claim.Spec.VolumeName)
 		glog.V(5).Infof("Security mismatch.  Expecting %s but found %s", pv.Name, claim.Spec.VolumeName)
 		return pv, api.PersistentVolumeStatus{
 			Phase:   api.VolumeFailed,
