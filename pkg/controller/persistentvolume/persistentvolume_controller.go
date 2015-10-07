@@ -285,7 +285,7 @@ func (controller *PersistentVolumeController) reconcileClaim(claim *api.Persiste
 		newVolume.Annotations[provisionedForKey] = ClaimToProvisionableKey(claim)
 		newVolume.Annotations[pvProvisioningRequired] = "true"
 		newVolume.Annotations[qosProvisioningKey] = qos
-		_, err = controller.client.CreatePersistentVolume(newVolume)
+		newVolume, err = controller.client.CreatePersistentVolume(newVolume)
 		glog.V(5).Infof("PersistentVolume[%s] created for PVC[%s]", newVolume.Name, claim.Name)
 		if err != nil {
 			return claim, api.PersistentVolumeClaimStatus{Phase: api.ClaimPending}, fmt.Errorf("PersistentVolumeClaim[%s] failed provisioning: %+v", claim.Name, err)
