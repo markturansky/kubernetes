@@ -486,10 +486,6 @@ func provisionVolume(pv *api.PersistentVolume, controller *PersistentVolumeContr
 		// the volume was created in the infrastructure and likely has a PV name on it, but we failed to mark the provisioning completed.
 		return
 	}
-
-	// only releasing the lock if successful to prevent dupes from being created in the infrastructure
-	controller.locks[pv.Name].Unlock()
-	delete(controller.locks, pv.Name)
 }
 
 func recycleVolume(pv *api.PersistentVolume, controller *PersistentVolumeController) {
