@@ -113,10 +113,6 @@ func (pvIndex *persistentVolumeOrderedIndex) Find(searchPV *api.PersistentVolume
 		// return the exact pre-binding match, if found
 		unboundVolumes := []*api.PersistentVolume{}
 		for _, volume := range volumes {
-			// check for current binding
-			if volume.Spec.ClaimRef != nil {
-				continue
-			}
 
 			// check for pre-bind where the volume is intended for one specific claim
 			if createdFor, ok := volume.Annotations[provisionedForKey]; ok {
@@ -126,6 +122,11 @@ func (pvIndex *persistentVolumeOrderedIndex) Find(searchPV *api.PersistentVolume
 				}
 				// exact annotation match! No search required.
 				return volume, nil
+			}
+
+			// check for current binding
+			if volume.Spec.ClaimRef != nil {
+				continue
 			}
 
 			// volume isn't currently bound or pre-bound.
