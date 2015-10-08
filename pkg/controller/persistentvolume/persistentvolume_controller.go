@@ -351,14 +351,14 @@ func (controller *PersistentVolumeController) reconcileClaim(claim *api.Persiste
 
 	if plugin, exists := controller.provisionerPlugins[qos]; exists {
 		glog.V(5).Infof("Provisioning PVC[%s]", claim.Name)
-		volumeOptions := volume.VolumeOptions{
-			Capacity:                      claim.Spec.Resources.Requests[api.ResourceName(api.ResourceStorage)],
-			AccessModes:                   claim.Spec.AccessModes,
-			PersistentVolumeReclaimPolicy: api.PersistentVolumeReclaimDelete,
+		provisioner, err := newCreater(plugin, claim)
+		if err != nil {
+			return claim, api.PersistentVolumeClaimStatus{Phase: api.ClaimPending}, fmt.Errorf("Unexpected error getting new provisioner: %v\n", err)
 		}
-
-		provisioner, err := plugin.NewCreater(volumeOptions)
 		newVolume, err := provisioner.NewPersistentVolumeTemplate()
+		if err != nil {
+			return claim, api.PersistentVolumeClaimStatus{Phase: api.ClaimPending}, fmt.Errorf("Unexpected error getting new volume template: %v\n", err)
+		}
 
 		claimRef, err := api.GetReference(claim)
 		if err != nil {
@@ -561,7 +561,15 @@ func provisionVolume(pv *api.PersistentVolume, controller *PersistentVolumeContr
 		return
 	}
 
-	creater, _ := provisioner.NewCreater(volume.VolumeOptions{})
+	// Find the claim in local cache
+	obj, exists, _ := controller.claimStore.GetByKey(fmt.Sprintf("%s/%s", pv.Spec.ClaimRef.Namespace, pv.Spec.ClaimRef.Name))
+	if !exists {
+		glog.V(5).Infof("No claim[%s] found for PV[%s]", pv.Spec.ClaimRef.Name, pv.Name)
+		return
+	}
+	claim := obj.(*api.PersistentVolumeClaim)
+
+	creater, _ := newCreater(provisioner, claim)
 	err := creater.Provision(pv)
 	if err != nil {
 		glog.Errorf("Could not provision %s", pv.Name)
@@ -685,6 +693,17 @@ func pvRequiresRecycleOrDeleteAnnotation(pv *api.PersistentVolume) bool {
 		isRecyclable(pv.Spec.PersistentVolumeReclaimPolicy) &&
 		!keyExists(pvRecycleRequired, pv.Annotations) &&
 		!keyExists(pvDeleteRequired, pv.Annotations)
+}
+
+func newCreater(plugin volume.ProvisionableVolumePlugin, claim *api.PersistentVolumeClaim) (volume.Creater, error) {
+	volumeOptions := volume.VolumeOptions{
+		Capacity:                      claim.Spec.Resources.Requests[api.ResourceName(api.ResourceStorage)],
+		AccessModes:                   claim.Spec.AccessModes,
+		PersistentVolumeReclaimPolicy: api.PersistentVolumeReclaimDelete,
+	}
+
+	provisioner, err := plugin.NewCreater(volumeOptions)
+	return provisioner, err
 }
 
 func awaitingRecycleCompletion(pv *api.PersistentVolume) bool {
