@@ -39,10 +39,94 @@ import (
 	"github.com/golang/glog"
 )
 
-// PersistentVolumeController reconciles the state of all PersistentVolumes and PersistentVolumeClaims.
-// This controller inspects a PV/C and adds the appropriate annotations to denote its condition.
+/*
+PersistentVolumeController manages interactions between a PersistentVolume and PersistentVolumeClaim.
+The interplay between volume and claim is managed by single, small transactions that advance the volume/claim
+to the next state.  Locks are made on each PV to make recyc/provisioning operations re-entrant. Concurrent operations
+on volumes is likely but only 1 per volume at a time.
 
-//
+There are three main flows through the controller:  Binding, Recycling, and Provisioning.
+
+The recycling flow doubles for both recycling and deleting, as the operations are similar.
+
+Each numbered step in a flow represents one invocation of reconcileVolume or reconcileClaim.  Each small transaction
+triggers another trip through the reconcile func.
+
+
+Binding flow:
+
+
+	PV                                          PVC
+ 	--                                          ---
+
+1.                                              pvc is created
+
+2.                                              found available volume match
+                                                TX:  set pvc.Spec.VolumeName
+
+3.                                              claim has bound volume.
+                                                find/verify in local store
+                                                TX: set pv.Spec.ClaimRef = claim
+
+4.  pv.Spec.ClaimRef is not nil
+    TX: set pv.phase = bound
+
+
+Reclamation flow:
+
+    PV                                            PVC
+    --                                            ---
+
+1.                                                pvc is deleted
+
+2.  volume checks for claim,
+    if not found,
+    TX: pv.phase = Released
+
+3.  volume is released,
+    inspected for recyc annotations.
+    Finds none.
+    TX: add recycling/delete annotation
+
+4.    - volume has recyc/delete annotation
+    but missing completed annotation.
+    - add lock on pv.name
+    - recycle/delete volume in Go routine.
+    TX: add recyc/delete completed annotation.
+
+5.  volume completed reclamation.
+    a) if recyc, TX = set pv.phase = Available
+    b) if delete, TX = delete pv in API
+
+
+
+Provisioning flow:
+
+
+    PV                                            PVC
+    --                                            ---
+
+1.                                                pvc is created
+
+2.                                                claim has QoS annotation.
+                                                  TX:  Create PV with
+                                                     - "provisioned for" annotation to earmark for claim
+                                                     - "provisioning required annotation"
+
+3.  PV created.                                    on subsequent periodic sync, matching volume will exist.
+    has provisioning annotation                    TX:  set pvc.Spec.VolumeName
+    missing completed annotation.
+    - add lock on pv.name
+    - provision volume in Go routine
+    TX: add "provisiong completed" annotation
+
+4.  volume has completed annotation.              claim has bound volume.
+    TX: set pv.phase = bound                      find/verify in local store.
+                                                  volume already has ClaimRef.
+                                                  returns pvc.Status.Phase = bound and copies volume attributes.
+*/
+
+// PersistentVolumeController reconciles the state of all PersistentVolumes and PersistentVolumeClaims.
 type PersistentVolumeController struct {
 	volumeIndex        *persistentVolumeOrderedIndex
 	volumeController   *framework.Controller
