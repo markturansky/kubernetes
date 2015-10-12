@@ -26,10 +26,16 @@ import (
 )
 
 const (
+	// A PVClaim can request a quality of service tier by adding this annotation.  The value of the annotation
+	// is arbitrary.  The values are pre-defined by a cluster admin and known to users when requesting a QoS.
+	// For example tiers might be gold, silver, and tin and the admin configures what that means for each volume plugin that can provision a volume.
+	qosProvisioningKey = "volume.experimental.kubernetes.io/quality-of-service"
+	// When a PVClaim requests a QoS tier, the "provisionable" annotation is applied so that the provisioner will process the request for a new volume.
+	provisionableKey = "volume.experimental.kubernetes.io/provisionable"
 	// A PV created specifically for one claim must contain this annotation in order to bind to the claim.
 	// The value must be the namespace and name of the claim being bound to (i.e, claim.Namespace/claim.Name)
 	// This is an experimental feature and likely to change in the future.
-	createdForKey = "volume.extensions.kubernetes.io/provisioned-for"
+	provisionedForKey = "volume.experimental.kubernetes.io/provisioned-for"
 )
 
 // persistentVolumeOrderedIndex is a cache.Store that keeps persistent volumes indexed by AccessModes and ordered by storage capacity.
@@ -100,7 +106,7 @@ func (pvIndex *persistentVolumeOrderedIndex) find(searchPV *api.PersistentVolume
 	// but the fail to update claim.Spec.VolumeName fails.  This check allows the claim to find the volume
 	// that's already bound to the claim.
 	preboundClaim := ""
-	if createdFor, ok := searchPV.Annotations[createdForKey]; ok {
+	if createdFor, ok := searchPV.Annotations[provisionedForKey]; ok {
 		preboundClaim = createdFor
 	}
 
@@ -141,7 +147,7 @@ func (pvIndex *persistentVolumeOrderedIndex) findByAccessModesAndStorageCapacity
 	pv := &api.PersistentVolume{
 		ObjectMeta: api.ObjectMeta{
 			Annotations: map[string]string{
-				createdForKey: prebindKey,
+				provisionedForKey: prebindKey,
 			},
 		},
 		Spec: api.PersistentVolumeSpec{
@@ -267,4 +273,8 @@ func (c byAccessModes) Swap(i, j int) {
 
 func (c byAccessModes) Len() int {
 	return len(c.modes)
+}
+
+func ClaimToProvisionableKey(claim *api.PersistentVolumeClaim) string {
+	return fmt.Sprintf("%s/%s", claim.Namespace, claim.Name)
 }

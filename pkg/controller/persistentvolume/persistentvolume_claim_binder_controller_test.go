@@ -31,8 +31,12 @@ import (
 )
 
 func TestRunStop(t *testing.T) {
+	mockVolumePlugin := &volume.FakeVolumePlugin{}
+	provisioners := map[string]volume.ProvisionableVolumePlugin{
+		"foo": mockVolumePlugin,
+	}
 	client := &testclient.Fake{}
-	binder := NewPersistentVolumeClaimBinder(client, 1*time.Second)
+	binder := NewPersistentVolumeClaimBinder(client, 1*time.Second, provisioners)
 
 	if len(binder.stopChannels) != 0 {
 		t.Errorf("Non-running binder should not have any stopChannels.  Got %v", len(binder.stopChannels))

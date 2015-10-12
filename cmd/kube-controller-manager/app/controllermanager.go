@@ -134,6 +134,7 @@ func NewCMServer() *CMServer {
 			PersistentVolumeRecyclerIncrementTimeoutNFS:      30,
 			PersistentVolumeRecyclerMinimumTimeoutHostPath:   60,
 			PersistentVolumeRecyclerIncrementTimeoutHostPath: 30,
+			ProvisionerQualityOfServiceClasses:               []string{},
 		},
 		KubeAPIQPS:   20.0,
 		KubeAPIBurst: 30,
@@ -173,6 +174,12 @@ type VolumeConfigFlags struct {
 	PersistentVolumeRecyclerPodTemplateFilePathHostPath string
 	PersistentVolumeRecyclerMinimumTimeoutHostPath      int
 	PersistentVolumeRecyclerIncrementTimeoutHostPath    int
+
+	// provisioner configuration is passed via CLI flags.
+	// Many CLI flags are allowed
+	// ex: --storage-class="$className/fullyQualifiedPluginName"
+	//	   --storage-class="foo/kubernetes.io/aws-ebs"
+	ProvisionerQualityOfServiceClasses []string
 }
 
 // AddFlags adds flags for a specific CMServer to the specified FlagSet
@@ -197,6 +204,7 @@ func (s *CMServer) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerPodTemplateFilePathHostPath, "pv-recycler-pod-template-filepath-hostpath", s.VolumeConfigFlags.PersistentVolumeRecyclerPodTemplateFilePathHostPath, "The file path to a pod definition used as a template for HostPath persistent volume recycling. This is for development and testing only and will not work in a multi-node cluster.")
 	fs.IntVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutHostPath, "pv-recycler-minimum-timeout-hostpath", s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutHostPath, "The minimum ActiveDeadlineSeconds to use for a HostPath Recycler pod.  This is for development and testing only and will not work in a multi-node cluster.")
 	fs.IntVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerIncrementTimeoutHostPath, "pv-recycler-timeout-increment-hostpath", s.VolumeConfigFlags.PersistentVolumeRecyclerIncrementTimeoutHostPath, "the increment of time added per Gi to ActiveDeadlineSeconds for a HostPath scrubber pod.  This is for development and testing only and will not work in a multi-node cluster.")
+	fs.StringSliceVar(&s.VolumeConfigFlags.ProvisionerQualityOfServiceClasses, "storage-class", s.VolumeConfigFlags.ProvisionerQualityOfServiceClasses, "List of experimental quality-of-service classes and their provisioners.  Values are QoSName/volume-plugin-name.")
 	fs.IntVar(&s.TerminatedPodGCThreshold, "terminated-pod-gc-threshold", s.TerminatedPodGCThreshold, "Number of terminated pods that can exist before the terminated pod garbage collector starts deleting terminated pods. If <= 0, the terminated pod garbage collector is disabled.")
 	fs.DurationVar(&s.HorizontalPodAutoscalerSyncPeriod, "horizontal-pod-autoscaler-sync-period", s.HorizontalPodAutoscalerSyncPeriod, "The period for syncing the number of pods in horizontal pod autoscaler.")
 	fs.DurationVar(&s.DeploymentControllerSyncPeriod, "deployment-controller-sync-period", s.DeploymentControllerSyncPeriod, "Period for syncing the deployments.")
@@ -357,7 +365,10 @@ func (s *CMServer) Run(_ []string) error {
 		}
 	}
 
-	pvclaimBinder := persistentvolumecontroller.NewPersistentVolumeClaimBinder(kubeClient, s.PVClaimBinderSyncPeriod)
+	volumePlugins := ProbeRecyclableVolumePlugins(s.VolumeConfigFlags)
+	qosClasses := s.VolumeConfigFlags.ProvisionerQualityOfServiceClasses
+
+	pvclaimBinder := persistentvolumecontroller.NewPersistentVolumeClaimBinder(kubeClient, s.PVClaimBinderSyncPeriod, NewVolumeProvisioners(volumePlugins, qosClasses))
 	pvclaimBinder.Run()
 
 	pvRecycler, err := persistentvolumecontroller.NewPersistentVolumeRecycler(kubeClient, s.PVClaimBinderSyncPeriod, ProbeRecyclableVolumePlugins(s.VolumeConfigFlags))
@@ -365,6 +376,12 @@ func (s *CMServer) Run(_ []string) error {
 		glog.Fatalf("Failed to start persistent volume recycler: %+v", err)
 	}
 	pvRecycler.Run()
+
+	pvController, err := persistentvolumecontroller.NewPersistentVolumeController(persistentvolumecontroller.NewControllerClient(kubeClient), s.PVClaimBinderSyncPeriod, volumePlugins, NewVolumeProvisioners(volumePlugins, qosClasses), cloud)
+	if err != nil {
+		glog.Fatalf("Failed to start persistent volume controller: %+v", err)
+	}
+	pvController.Run()
 
 	var rootCA []byte
 

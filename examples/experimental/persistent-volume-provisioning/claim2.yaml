@@ -1,0 +1,20 @@
+{
+  "kind": "PersistentVolumeClaim",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "claim2",
+    "annotations": {
+      "volume.experimental.kubernetes.io/quality-of-service": "bar"
+    }
+  },
+  "spec": {
+    "accessModes": [
+      "ReadWriteOnce"
+    ],
+    "resources": {
+      "requests": {
+        "storage": "3Gi"
+      }
+    }
+  }
+}

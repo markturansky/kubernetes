@@ -30,6 +30,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"
@@ -37,21 +38,23 @@ import (
 
 // PersistentVolumeClaimBinder is a controller that synchronizes PersistentVolumeClaims.
 type PersistentVolumeClaimBinder struct {
-	volumeIndex      *persistentVolumeOrderedIndex
-	volumeController *framework.Controller
-	claimController  *framework.Controller
-	client           binderClient
-	stopChannels     map[string]chan struct{}
-	lock             sync.RWMutex
+	volumeIndex        *persistentVolumeOrderedIndex
+	volumeController   *framework.Controller
+	claimController    *framework.Controller
+	client             binderClient
+	provisionerPlugins map[string]volume.ProvisionableVolumePlugin
+	stopChannels       map[string]chan struct{}
+	lock               sync.RWMutex
 }
 
 // NewPersistentVolumeClaimBinder creates a new PersistentVolumeClaimBinder
-func NewPersistentVolumeClaimBinder(kubeClient client.Interface, syncPeriod time.Duration) *PersistentVolumeClaimBinder {
+func NewPersistentVolumeClaimBinder(kubeClient client.Interface, syncPeriod time.Duration, provisionerPlugins map[string]volume.ProvisionableVolumePlugin) *PersistentVolumeClaimBinder {
 	volumeIndex := NewPersistentVolumeOrderedIndex()
 	binderClient := NewBinderClient(kubeClient)
 	binder := &PersistentVolumeClaimBinder{
-		volumeIndex: volumeIndex,
-		client:      binderClient,
+		volumeIndex:        volumeIndex,
+		client:             binderClient,
+		provisionerPlugins: provisionerPlugins,
 	}
 
 	_, volumeController := framework.NewInformer(
@@ -280,6 +283,19 @@ func syncClaim(volumeIndex *persistentVolumeOrderedIndex, binderClient binderCli
 		if err != nil {
 			return err
 		}
+
+		// claims requesting provisioning will only match the volume provisioned for it.
+		// Another process is provisioning a volume for the claim.  A race condition exists between this controller
+		// and the one provisioning this claim.  The PV created for the claim might not have been created yet, so
+		// this claim may have matched another available volume.
+		if keyExists(qosProvisioningKey, claim.Annotations) && volume != nil && keyExists(provisionedForKey, volume.Annotations) {
+			provisionedFor := volume.Annotations[provisionedForKey]
+			claimKey := ClaimToProvisionableKey(claim)
+			if provisionedFor != claimKey {
+				volume = nil
+			}
+		}
+
 		if volume == nil {
 			glog.V(5).Infof("A volume match does not exist for persistent claim: %s", claim.Name)
 			return nil

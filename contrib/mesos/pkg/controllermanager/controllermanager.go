@@ -166,13 +166,23 @@ func (s *CMServer) Run(_ []string) error {
 	namespaceController := namespacecontroller.NewNamespaceController(kubeClient, &unversioned.APIVersions{}, s.NamespaceSyncPeriod)
 	namespaceController.Run()
 
-	pvclaimBinder := persistentvolumecontroller.NewPersistentVolumeClaimBinder(kubeClient, s.PVClaimBinderSyncPeriod)
+	volumePlugins := app.ProbeRecyclableVolumePlugins(s.VolumeConfigFlags)
+	qosClasses := s.VolumeConfigFlags.ProvisionerQualityOfServiceClasses
+
+	pvclaimBinder := persistentvolumecontroller.NewPersistentVolumeClaimBinder(kubeClient, s.PVClaimBinderSyncPeriod, app.NewVolumeProvisioners(volumePlugins, qosClasses))
 	pvclaimBinder.Run()
+
 	pvRecycler, err := persistentvolumecontroller.NewPersistentVolumeRecycler(kubeClient, s.PVClaimBinderSyncPeriod, app.ProbeRecyclableVolumePlugins(s.VolumeConfigFlags))
 	if err != nil {
 		glog.Fatalf("Failed to start persistent volume recycler: %+v", err)
 	}
 	pvRecycler.Run()
+
+	pvController, err := persistentvolumecontroller.NewPersistentVolumeController(persistentvolumecontroller.NewControllerClient(kubeClient), s.PVClaimBinderSyncPeriod, volumePlugins, app.NewVolumeProvisioners(volumePlugins, qosClasses), cloud)
+	if err != nil {
+		glog.Fatalf("Failed to start persistent volume controller: %+v", err)
+	}
+	pvController.Run()
 
 	var rootCA []byte
 
