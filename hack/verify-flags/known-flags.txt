@@ -276,6 +276,7 @@ ssh-keyfile
 ssh-user
 static-pods-config
 stats-port
+storage-class
 storage-version
 storage-versions
 streaming-connection-idle-timeout
