@@ -33,8 +33,9 @@ import (
 	"k8s.io/kubernetes/pkg/volume/host_path"
 	"k8s.io/kubernetes/pkg/volume/nfs"
 
-	"github.com/golang/glog"
 	"strings"
+
+	"github.com/golang/glog"
 )
 
 // ProbeRecyclableVolumePlugins collects all persistent volume plugins into an easy to use list.
