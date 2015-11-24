@@ -172,7 +172,7 @@ func (s *CMServer) Run(_ []string) error {
 	pvclaimBinder := persistentvolumecontroller.NewPersistentVolumeClaimBinder(kubeClient, s.PVClaimBinderSyncPeriod, app.NewVolumeProvisioners(volumePlugins, qosClasses))
 	pvclaimBinder.Run()
 
-	pvRecycler, err := persistentvolumecontroller.NewPersistentVolumeRecycler(kubeClient, s.PVClaimBinderSyncPeriod, app.ProbeRecyclableVolumePlugins(s.VolumeConfigFlags))
+	pvRecycler, err := persistentvolumecontroller.NewPersistentVolumeRecycler(kubeClient, s.PVClaimBinderSyncPeriod, app.ProbeRecyclableVolumePlugins(s.VolumeConfigFlags), cloud)
 	if err != nil {
 		glog.Fatalf("Failed to start persistent volume recycler: %+v", err)
 	}
