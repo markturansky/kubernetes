@@ -262,6 +262,7 @@ func provisionVolume(pv *api.PersistentVolume, controller *PersistentVolumeContr
 
 	if isAnnotationMatch(pvProvisioningRequired, pvProvisioningCompleted, pv.Annotations) {
 		glog.V(5).Infof("PersistentVolume[%s] is already provisioned", pv.Name)
+		return
 	}
 
 	qos, exists := pv.Annotations[qosProvisioningKey]

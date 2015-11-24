@@ -170,6 +170,11 @@ func syncVolume(volumeIndex *persistentVolumeOrderedIndex, binderClient binderCl
 		volumeIndex.Add(volume)
 	}
 
+	if isBeingProvisioned(volume) {
+		glog.V(4).Infof("Skipping PersistentVolume[%s], waiting for provisioning to finish", volume.Name)
+		return nil
+	}
+
 	switch currentPhase {
 	case api.VolumePending:
 
@@ -309,21 +314,25 @@ func syncClaim(volumeIndex *persistentVolumeOrderedIndex, binderClient binderCli
 			return fmt.Errorf("Unexpected error getting claim reference: %v\n", err)
 		}
 
-		// make a binding reference to the claim and ensure to update the local index to prevent dupe bindings
-		clone, err := conversion.NewCloner().DeepCopy(volume)
-		if err != nil {
-			return fmt.Errorf("Error cloning pv: %v", err)
-		}
-		volumeClone, ok := clone.(*api.PersistentVolume)
-		if !ok {
-			return fmt.Errorf("Unexpected pv cast error : %v\n", volumeClone)
-		}
-		volumeClone.Spec.ClaimRef = claimRef
-		if updatedVolume, err := binderClient.UpdatePersistentVolume(volumeClone); err != nil {
-			return fmt.Errorf("Unexpected error saving PersistentVolume.Status: %+v", err)
-		} else {
-			volume = updatedVolume
-			volumeIndex.Update(updatedVolume)
+		// Make a binding reference to the claim and ensure to update
+		// the local index to prevent dupe bindings. Be sure not to overwrite
+		// exising reference created already by dynamic provisioning.
+		if volume.Spec.ClaimRef == nil {
+			clone, err := conversion.NewCloner().DeepCopy(volume)
+			if err != nil {
+				return fmt.Errorf("Error cloning pv: %v", err)
+			}
+			volumeClone, ok := clone.(*api.PersistentVolume)
+			if !ok {
+				return fmt.Errorf("Unexpected pv cast error : %v\n", volumeClone)
+			}
+			volumeClone.Spec.ClaimRef = claimRef
+			if updatedVolume, err := binderClient.UpdatePersistentVolume(volumeClone); err != nil {
+				return fmt.Errorf("Unexpected error saving PersistentVolume.Status: %+v", err)
+			} else {
+				volume = updatedVolume
+				volumeIndex.Update(updatedVolume)
+			}
 		}
 
 		// the bind is persisted on the volume above and will always match the claim in a search.
@@ -356,6 +365,14 @@ func syncClaim(volumeIndex *persistentVolumeOrderedIndex, binderClient binderCli
 
 	glog.V(5).Infof("PersistentVolumeClaim[%s] is bound\n", claim.Name)
 	return nil
+}
+
+func isBeingProvisioned(volume *api.PersistentVolume) bool {
+	value, found := volume.Annotations[pvProvisioningRequired]
+	if found && value != pvProvisioningCompleted {
+		return true
+	}
+	return false
 }
 
 // Run starts all of this binder's control loops
