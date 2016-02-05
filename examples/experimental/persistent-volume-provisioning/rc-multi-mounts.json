@@ -1,0 +1,50 @@
+{
+  "apiVersion": "v1",
+  "kind": "ReplicationController",
+  "metadata": {
+    "name": "testrc",
+    "labels": {
+      "rc-label": "foo"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "rc-label": "foo"
+    },
+    "template": {
+      "containers": [
+        {
+          "name": "testcontainer",
+          "image": "gcr.io/google_containers/busybox",
+          "command": [ "/bin/sh" ],
+          "args": ["-c", "echo foo > /test/vol1/test.txt && echo bar > /test/vol2/test.txt && sleep 5s"],
+          "volumeMounts": [
+            {
+              "mountPath": "/test/vol1",
+              "name": "vol1"
+            },
+            {
+              "mountPath": "/test/vol2",
+              "name": "vol2"
+            }
+          ]
+        }
+      ],
+      "volumes": [
+        {
+          "name": "vol1",
+          "persistentVolumeClaim": {
+            "claimName": "claim1"
+          }
+        },
+        {
+          "name": "vol2",
+          "persistentVolumeClaim": {
+            "claimName": "claim2"
+          }
+        }
+      ]
+    }
+  }
+}
