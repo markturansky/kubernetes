@@ -31,63 +31,90 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/api/meta"
 )
 
 // ThirdPartyAnalyticsController is a controller that synchronizes PersistentVolumeClaims.
 type ThirdPartyAnalyticsController struct {
 	podController *framework.Controller
+	controllers   map[string]*framework.Controller
 }
 
 // NewThirdPartyAnalyticsController creates a new ThirdPartyAnalyticsController
 func NewThirdPartyAnalyticsController(kubeClient clientset.Interface) *ThirdPartyAnalyticsController {
 	ctrl := &ThirdPartyAnalyticsController{}
 
-	_, ctrl.podController = framework.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
-				return kubeClient.Core().Pods(api.NamespaceAll).List(options)
-			},
-			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
-				return kubeClient.Core().Pods(api.NamespaceAll).Watch(options)
-			},
+	watches := map[string]struct {
+		objType   runtime.Object
+		listFunc  func(options api.ListOptions) (runtime.Object, error)
+		watchFunc func(options api.ListOptions) (watch.Interface, error)
+	}{
+		"pod": {
+			objType:   &api.Pod{},
+			listFunc:  func(options api.ListOptions) (runtime.Object, error){ return kubeClient.Core().Pods(api.NamespaceAll).List(options)},
+			watchFunc: func(options api.ListOptions) (watch.Interface, error){return kubeClient.Core().Pods(api.NamespaceAll).Watch(options)},
 		},
-		&api.Pod{},
-		0, // 0 means no re-sync
-		framework.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				pod, ok := obj.(*api.Pod)
-				if !ok {
-					glog.Errorf("Expected Pod but handler received %+v", obj)
-					return
-				}
-				ctrl.track("Pod", "Add", pod.Namespace)
+		"replication_controller": {
+			objType:   &api.ReplicationController{},
+			listFunc:  func(options api.ListOptions) (runtime.Object, error){ return kubeClient.Core().ReplicationControllers(api.NamespaceAll).List(options)},
+			watchFunc: func(options api.ListOptions) (watch.Interface, error){return kubeClient.Core().ReplicationControllers(api.NamespaceAll).Watch(options)},
+		},
+		"pvclaim": {
+			objType:   &api.ReplicationController{},
+			listFunc:  func(options api.ListOptions) (runtime.Object, error){ return kubeClient.Core().PersistentVolumeClaims(api.NamespaceAll).List(options)},
+			watchFunc: func(options api.ListOptions) (watch.Interface, error){return kubeClient.Core().PersistentVolumeClaims(api.NamespaceAll).Watch(options)},
+		},
+		"secret": {
+			objType:   &api.ReplicationController{},
+			listFunc:  func(options api.ListOptions) (runtime.Object, error){ return kubeClient.Core().Secrets(api.NamespaceAll).List(options)},
+			watchFunc: func(options api.ListOptions) (watch.Interface, error){return kubeClient.Core().Secrets(api.NamespaceAll).Watch(options)},
+		},
+		"service": {
+			objType:   &api.ReplicationController{},
+			listFunc:  func(options api.ListOptions) (runtime.Object, error){ return kubeClient.Core().Services(api.NamespaceAll).List(options)},
+			watchFunc: func(options api.ListOptions) (watch.Interface, error){return kubeClient.Core().Services(api.NamespaceAll).Watch(options)},
+		},
+	}
+
+	for name, watch := range watches {
+		_, c := framework.NewInformer(
+			&cache.ListWatch{
+				ListFunc:  watch.listFunc,
+				WatchFunc: watch.watchFunc,
 			},
-			UpdateFunc: func(oldObj, newObj interface{}) {
-				pod, ok := newObj.(*api.Pod)
-				if !ok {
-					glog.Errorf("Expected Pod but handler received %+v", newObj)
-					return
-				}
-				ctrl.track("Pod", "Update", pod.Namespace)
-			},
-			DeleteFunc: func(obj interface{}) {
-				pod, ok := obj.(*api.Pod)
-				if !ok {
+			watch.objType,
+			0, // 0 is no re-sync
+			framework.ResourceEventHandlerFuncs{
+				AddFunc: func(obj interface{}) {
+					meta, err := meta.Accessor(obj)
+					if err != nil {
+						glog.Errorf("object has no meta: %v", err)
+					}
+					ctrl.track(name, "add", meta.GetNamespace())
+				},
+				UpdateFunc: func(oldObj, newObj interface{}) {
+					meta, err := meta.Accessor(newObj)
+					if err != nil {
+						glog.Errorf("object has no meta: %v", err)
+					}
+					ctrl.track(name, "update", meta.GetNamespace())
+				},
+				DeleteFunc: func(obj interface{}) {
 					unk, ok := obj.(cache.DeletedFinalStateUnknown)
-					if !ok {
-						glog.Errorf("Expected Pod but handler received %+v", obj)
-						return
+					if ok {
+						obj = unk.Obj
 					}
-					pod, ok = unk.Obj.(*api.Pod)
-					if !ok {
-						glog.Errorf("Expected Pod but handler received %+v", obj)
-						return
+					meta, err := meta.Accessor(obj)
+					if err != nil {
+						glog.Errorf("object has no meta: %v", err)
 					}
-				}
-				ctrl.track("Pod", "Delete", pod.Namespace)
+					ctrl.track(name, "delete", meta.GetNamespace())
+				},
 			},
-		},
-	)
+		)
+
+		ctrl.controllers[name] = c
+	}
 
 	return ctrl
 }
@@ -110,7 +137,10 @@ func (c *ThirdPartyAnalyticsController) track(objName, action, namespace string)
 // Run starts all of this binder's control loops
 func (controller *ThirdPartyAnalyticsController) Run(stopCh <-chan struct{}) {
 	glog.V(5).Infof("Starting ThirdPartyAnalyticsController\n")
-	go controller.podController.Run(stopCh)
+	for name, c := range controller.controllers {
+		glog.V(5).Infof("Starting watch for %s", name)
+		go c.Run(stopCh)
+	}
 }
 
 type AnalyticsTracker interface {
