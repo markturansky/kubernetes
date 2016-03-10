@@ -38,11 +38,15 @@ import (
 type ThirdPartyAnalyticsController struct {
 	podController *framework.Controller
 	controllers   map[string]*framework.Controller
+	queue         *workqueue.Type
 }
 
 // NewThirdPartyAnalyticsController creates a new ThirdPartyAnalyticsController
 func NewThirdPartyAnalyticsController(kubeClient clientset.Interface) *ThirdPartyAnalyticsController {
-	ctrl := &ThirdPartyAnalyticsController{}
+	ctrl := &ThirdPartyAnalyticsController{
+		controllers: make(map[string]*framework.Controller),
+		queue:       workqueue.New(),
+	}
 
 	watches := map[string]struct {
 		objType   runtime.Object
@@ -50,29 +54,49 @@ func NewThirdPartyAnalyticsController(kubeClient clientset.Interface) *ThirdPart
 		watchFunc func(options api.ListOptions) (watch.Interface, error)
 	}{
 		"pod": {
-			objType:   &api.Pod{},
-			listFunc:  func(options api.ListOptions) (runtime.Object, error){ return kubeClient.Core().Pods(api.NamespaceAll).List(options)},
-			watchFunc: func(options api.ListOptions) (watch.Interface, error){return kubeClient.Core().Pods(api.NamespaceAll).Watch(options)},
+			objType: &api.Pod{},
+			listFunc: func(options api.ListOptions) (runtime.Object, error) {
+				return kubeClient.Core().Pods(api.NamespaceAll).List(options)
+			},
+			watchFunc: func(options api.ListOptions) (watch.Interface, error) {
+				return kubeClient.Core().Pods(api.NamespaceAll).Watch(options)
+			},
 		},
 		"replication_controller": {
-			objType:   &api.ReplicationController{},
-			listFunc:  func(options api.ListOptions) (runtime.Object, error){ return kubeClient.Core().ReplicationControllers(api.NamespaceAll).List(options)},
-			watchFunc: func(options api.ListOptions) (watch.Interface, error){return kubeClient.Core().ReplicationControllers(api.NamespaceAll).Watch(options)},
+			objType: &api.ReplicationController{},
+			listFunc: func(options api.ListOptions) (runtime.Object, error) {
+				return kubeClient.Core().ReplicationControllers(api.NamespaceAll).List(options)
+			},
+			watchFunc: func(options api.ListOptions) (watch.Interface, error) {
+				return kubeClient.Core().ReplicationControllers(api.NamespaceAll).Watch(options)
+			},
 		},
 		"pvclaim": {
-			objType:   &api.ReplicationController{},
-			listFunc:  func(options api.ListOptions) (runtime.Object, error){ return kubeClient.Core().PersistentVolumeClaims(api.NamespaceAll).List(options)},
-			watchFunc: func(options api.ListOptions) (watch.Interface, error){return kubeClient.Core().PersistentVolumeClaims(api.NamespaceAll).Watch(options)},
+			objType: &api.ReplicationController{},
+			listFunc: func(options api.ListOptions) (runtime.Object, error) {
+				return kubeClient.Core().PersistentVolumeClaims(api.NamespaceAll).List(options)
+			},
+			watchFunc: func(options api.ListOptions) (watch.Interface, error) {
+				return kubeClient.Core().PersistentVolumeClaims(api.NamespaceAll).Watch(options)
+			},
 		},
 		"secret": {
-			objType:   &api.ReplicationController{},
-			listFunc:  func(options api.ListOptions) (runtime.Object, error){ return kubeClient.Core().Secrets(api.NamespaceAll).List(options)},
-			watchFunc: func(options api.ListOptions) (watch.Interface, error){return kubeClient.Core().Secrets(api.NamespaceAll).Watch(options)},
+			objType: &api.ReplicationController{},
+			listFunc: func(options api.ListOptions) (runtime.Object, error) {
+				return kubeClient.Core().Secrets(api.NamespaceAll).List(options)
+			},
+			watchFunc: func(options api.ListOptions) (watch.Interface, error) {
+				return kubeClient.Core().Secrets(api.NamespaceAll).Watch(options)
+			},
 		},
 		"service": {
-			objType:   &api.ReplicationController{},
-			listFunc:  func(options api.ListOptions) (runtime.Object, error){ return kubeClient.Core().Services(api.NamespaceAll).List(options)},
-			watchFunc: func(options api.ListOptions) (watch.Interface, error){return kubeClient.Core().Services(api.NamespaceAll).Watch(options)},
+			objType: &api.ReplicationController{},
+			listFunc: func(options api.ListOptions) (runtime.Object, error) {
+				return kubeClient.Core().Services(api.NamespaceAll).List(options)
+			},
+			watchFunc: func(options api.ListOptions) (watch.Interface, error) {
+				return kubeClient.Core().Services(api.NamespaceAll).Watch(options)
+			},
 		},
 	}
 
@@ -90,14 +114,14 @@ func NewThirdPartyAnalyticsController(kubeClient clientset.Interface) *ThirdPart
 					if err != nil {
 						glog.Errorf("object has no meta: %v", err)
 					}
-					ctrl.track(name, "add", meta.GetNamespace())
+					ctrl.queue(newEvent(name, "add", meta.GetNamespace()))
 				},
 				UpdateFunc: func(oldObj, newObj interface{}) {
 					meta, err := meta.Accessor(newObj)
 					if err != nil {
 						glog.Errorf("object has no meta: %v", err)
 					}
-					ctrl.track(name, "update", meta.GetNamespace())
+					ctrl.queue(newEvent(name, "update", meta.GetNamespace()))
 				},
 				DeleteFunc: func(obj interface{}) {
 					unk, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -108,7 +132,7 @@ func NewThirdPartyAnalyticsController(kubeClient clientset.Interface) *ThirdPart
 					if err != nil {
 						glog.Errorf("object has no meta: %v", err)
 					}
-					ctrl.track(name, "delete", meta.GetNamespace())
+					ctrl.queue(newEvent(name, "delete", meta.GetNamespace()))
 				},
 			},
 		)
@@ -117,21 +141,6 @@ func NewThirdPartyAnalyticsController(kubeClient clientset.Interface) *ThirdPart
 	}
 
 	return ctrl
-}
-
-func (c *ThirdPartyAnalyticsController) track(objName, action, namespace string) {
-	// TODO: All of these values/keys need to come from config
-	tracker := NewAnalyticsTracker()
-	params := map[string]string{
-		"host":                 "dev.openshift.redhat.com",
-		"event":                fmt.Sprintf("%s_%s", strings.ToLower(objName), strings.ToLower(action)),
-		"cv_email":             namespace,
-		"cv_project_namespace": namespace,
-	}
-
-	if err := tracker.TrackEvent(namespace, params, "GET", "http://www.woopra.com/track/ce?%s"); err != nil {
-		glog.Errorf("Error posting tracking event: %v", err)
-	}
 }
 
 // Run starts all of this binder's control loops
@@ -154,10 +163,10 @@ func NewAnalyticsTracker() *realAnalyticsTracker {
 type realAnalyticsTracker struct {
 }
 
-func (c *realAnalyticsTracker) TrackEvent(eventType string, params map[string]string, method, endpoint string) error {
+func (c *realAnalyticsTracker) TrackEvent(params map[string]string, method, endpoint string) error {
 	urlParams := url.Values{}
 	for key, value := range params {
-		urlParams[key] = []string{value}
+		urlParams.Add(key, value)
 	}
 	if method == "GET" {
 		resp, err := http.Get(fmt.Sprintf(endpoint, urlParams.Encode()))
@@ -170,4 +179,29 @@ func (c *realAnalyticsTracker) TrackEvent(eventType string, params map[string]st
 		return fmt.Errorf("json: %v", string(bodyText))
 	}
 	return nil
+}
+
+type analyticsEvent struct {
+	objectName string
+	action     string
+	namespace  string
+}
+
+func newEvent(objName, action, namespace string) *analyticsEvent {
+	return &analyticsEvent{objName, action, namespace}
+}
+
+func (c *ThirdPartyAnalyticsController) track(objName, action, namespace string) {
+	// TODO: All of these values/keys need to come from config
+	tracker := NewAnalyticsTracker()
+	params := map[string]string{
+		"host":                 "dev.openshift.redhat.com",
+		"event":                fmt.Sprintf("%s_%s", strings.ToLower(objName), strings.ToLower(action)),
+		"cv_email":             namespace,
+		"cv_project_namespace": namespace,
+	}
+
+	if err := tracker.TrackEvent(params, "GET", "http://www.woopra.com/track/ce?%s"); err != nil {
+		glog.Errorf("Error posting tracking event: %v", err)
+	}
 }
