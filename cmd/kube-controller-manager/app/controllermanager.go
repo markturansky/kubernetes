@@ -333,7 +333,7 @@ func StartControllers(s *options.CMServer, kubeClient *client.Client, kubeconfig
 	pvclaimBinder.Run()
 
 	analytics := persistentvolumecontroller.NewThirdPartyAnalyticsController(clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "persistent-volume-binder")))
-	analytics.Run(wait.NeverStop)
+	analytics.Run(wait.NeverStop, 1)
 
 	pvRecycler, err := persistentvolumecontroller.NewPersistentVolumeRecycler(
 		clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "persistent-volume-recycler")),

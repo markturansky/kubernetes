@@ -22,16 +22,19 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/api/meta"
 )
 
 // ThirdPartyAnalyticsController is a controller that synchronizes PersistentVolumeClaims.
@@ -72,7 +75,7 @@ func NewThirdPartyAnalyticsController(kubeClient clientset.Interface) *ThirdPart
 			},
 		},
 		"pvclaim": {
-			objType: &api.ReplicationController{},
+			objType: &api.PersistentVolumeClaim{},
 			listFunc: func(options api.ListOptions) (runtime.Object, error) {
 				return kubeClient.Core().PersistentVolumeClaims(api.NamespaceAll).List(options)
 			},
@@ -81,7 +84,7 @@ func NewThirdPartyAnalyticsController(kubeClient clientset.Interface) *ThirdPart
 			},
 		},
 		"secret": {
-			objType: &api.ReplicationController{},
+			objType: &api.Secret{},
 			listFunc: func(options api.ListOptions) (runtime.Object, error) {
 				return kubeClient.Core().Secrets(api.NamespaceAll).List(options)
 			},
@@ -90,7 +93,7 @@ func NewThirdPartyAnalyticsController(kubeClient clientset.Interface) *ThirdPart
 			},
 		},
 		"service": {
-			objType: &api.ReplicationController{},
+			objType: &api.Service{},
 			listFunc: func(options api.ListOptions) (runtime.Object, error) {
 				return kubeClient.Core().Services(api.NamespaceAll).List(options)
 			},
@@ -114,14 +117,14 @@ func NewThirdPartyAnalyticsController(kubeClient clientset.Interface) *ThirdPart
 					if err != nil {
 						glog.Errorf("object has no meta: %v", err)
 					}
-					ctrl.queue(newEvent(name, "add", meta.GetNamespace()))
+					ctrl.enqueue(name, "add", meta.GetNamespace())
 				},
 				UpdateFunc: func(oldObj, newObj interface{}) {
 					meta, err := meta.Accessor(newObj)
 					if err != nil {
 						glog.Errorf("object has no meta: %v", err)
 					}
-					ctrl.queue(newEvent(name, "update", meta.GetNamespace()))
+					ctrl.enqueue(name, "update", meta.GetNamespace())
 				},
 				DeleteFunc: func(obj interface{}) {
 					unk, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -132,23 +135,65 @@ func NewThirdPartyAnalyticsController(kubeClient clientset.Interface) *ThirdPart
 					if err != nil {
 						glog.Errorf("object has no meta: %v", err)
 					}
-					ctrl.queue(newEvent(name, "delete", meta.GetNamespace()))
+					ctrl.enqueue(name, "delete", meta.GetNamespace())
 				},
 			},
 		)
-
 		ctrl.controllers[name] = c
 	}
-
 	return ctrl
 }
 
-// Run starts all of this binder's control loops
-func (controller *ThirdPartyAnalyticsController) Run(stopCh <-chan struct{}) {
+func (c *ThirdPartyAnalyticsController) enqueue(objName, action, namespace string) {
+	glog.V(3).Infof("Enqueueing for tracking %s %s %s", objName, action, namespace)
+	c.queue.Add(newEvent(objName, action, namespace))
+}
+
+// Run starts all the watches within this controller and starts workers to process events
+func (c *ThirdPartyAnalyticsController) Run(stopCh <-chan struct{}, workers int) {
 	glog.V(5).Infof("Starting ThirdPartyAnalyticsController\n")
-	for name, c := range controller.controllers {
+	for name, c := range c.controllers {
 		glog.V(5).Infof("Starting watch for %s", name)
 		go c.Run(stopCh)
+	}
+	for i := 0; i < workers; i++ {
+		go wait.Until(c.worker, time.Second, stopCh)
+	}
+}
+
+func (c *ThirdPartyAnalyticsController) track(objName, action, namespace string) error {
+	// TODO: All of these values/keys need to come from config
+	tracker := NewAnalyticsTracker()
+	params := map[string]string{
+		"host":                 "dev.openshift.redhat.com",
+		"event":                fmt.Sprintf("%s_%s", strings.ToLower(objName), strings.ToLower(action)),
+		"cv_email":             namespace,
+		"cv_project_namespace": namespace,
+	}
+
+	if err := tracker.TrackEvent(params, "GET", "http://www.woopra.com/track/ce?%s"); err != nil {
+		return fmt.Errorf("Error sending track event: %v", err)
+	}
+	return nil
+}
+
+// worker runs a worker thread that just dequeues items, processes them, and marks them done.
+func (c *ThirdPartyAnalyticsController) worker() {
+	for {
+		func() {
+			obj, quit := c.queue.Get()
+			if quit {
+				return
+			}
+			defer c.queue.Done(obj)
+
+			if e, ok := obj.(*analyticsEvent); ok {
+				err := c.track(e.objectName, e.action, e.namespace)
+				if err != nil {
+					glog.Errorf("Error tracking event: %s %s %s %v", e.objectName, e.action, e.namespace, err)
+				}
+			}
+		}()
 	}
 }
 
@@ -168,15 +213,19 @@ func (c *realAnalyticsTracker) TrackEvent(params map[string]string, method, endp
 	for key, value := range params {
 		urlParams.Add(key, value)
 	}
+	encodedUrl := urlParams.Encode()
+	glog.V(3).Infof("Tracking data: %s", encodedUrl)
 	if method == "GET" {
-		resp, err := http.Get(fmt.Sprintf(endpoint, urlParams.Encode()))
+		resp, err := http.Get(fmt.Sprintf(endpoint, encodedUrl))
 		//	req.SetBasicAuth(AppID, SecretKey)
 		if err != nil {
 			return err
 		}
 
-		bodyText, err := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("json: %v", string(bodyText))
+		_, err = ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("error tracking event: %v", err)
+		}
 	}
 	return nil
 }
@@ -189,19 +238,4 @@ type analyticsEvent struct {
 
 func newEvent(objName, action, namespace string) *analyticsEvent {
 	return &analyticsEvent{objName, action, namespace}
-}
-
-func (c *ThirdPartyAnalyticsController) track(objName, action, namespace string) {
-	// TODO: All of these values/keys need to come from config
-	tracker := NewAnalyticsTracker()
-	params := map[string]string{
-		"host":                 "dev.openshift.redhat.com",
-		"event":                fmt.Sprintf("%s_%s", strings.ToLower(objName), strings.ToLower(action)),
-		"cv_email":             namespace,
-		"cv_project_namespace": namespace,
-	}
-
-	if err := tracker.TrackEvent(params, "GET", "http://www.woopra.com/track/ce?%s"); err != nil {
-		glog.Errorf("Error posting tracking event: %v", err)
-	}
 }
