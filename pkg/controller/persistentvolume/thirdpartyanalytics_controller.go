@@ -39,7 +39,6 @@ import (
 
 // ThirdPartyAnalyticsController is a controller that synchronizes PersistentVolumeClaims.
 type ThirdPartyAnalyticsController struct {
-	podController *framework.Controller
 	controllers   map[string]*framework.Controller
 	queue         *workqueue.Type
 }
