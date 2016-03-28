@@ -250,14 +250,14 @@ func (s *ServiceController) processDelta(delta *cache.Delta) (error, time.Durati
 		return err, cachedService.nextRetryDelay()
 	} else if errors.IsNotFound(err) {
 		glog.V(2).Infof("Service %v not found, ensuring load balancer is deleted", namespacedName)
-		s.eventRecorder.Event(service, api.EventTypeNormal, "DeletingLoadBalancer", "Deleting load balancer")
+		s.eventRecorder.Event(service, api.EventTypeNormal, api.EventReasonDeletingLoadBalancer, api.EventReasonDeletingLoadBalancerDesc)
 		err := s.balancer.EnsureLoadBalancerDeleted(s.loadBalancerName(deltaService), s.zone.Region)
 		if err != nil {
 			message := "Error deleting load balancer (will retry): " + err.Error()
-			s.eventRecorder.Event(deltaService, api.EventTypeWarning, "DeletingLoadBalancerFailed", message)
+			s.eventRecorder.Event(deltaService, api.EventTypeWarning, api.EventReasonDeletingLoadBalancerFailed, message)
 			return err, cachedService.nextRetryDelay()
 		}
-		s.eventRecorder.Event(deltaService, api.EventTypeNormal, "DeletedLoadBalancer", "Deleted load balancer")
+		s.eventRecorder.Event(deltaService, api.EventTypeNormal, api.EventReasonDeletedLoadBalancer, api.EventReasonDeletedLoadBalancerDesc)
 		s.cache.delete(namespacedName.String())
 
 		cachedService.resetRetryDelay()
@@ -276,7 +276,7 @@ func (s *ServiceController) processDelta(delta *cache.Delta) (error, time.Durati
 			message += " (will not retry): "
 		}
 		message += err.Error()
-		s.eventRecorder.Event(service, api.EventTypeWarning, "CreatingLoadBalancerFailed", message)
+		s.eventRecorder.Event(service, api.EventTypeWarning, api.EventReasonCreatingLoadBalancer, message)
 
 		return err, cachedService.nextRetryDelay()
 	}
@@ -326,11 +326,11 @@ func (s *ServiceController) createLoadBalancerIfNeeded(namespacedName types.Name
 
 		if needDelete {
 			glog.Infof("Deleting existing load balancer for service %s that no longer needs a load balancer.", namespacedName)
-			s.eventRecorder.Event(service, api.EventTypeNormal, "DeletingLoadBalancer", "Deleting load balancer")
+			s.eventRecorder.Event(service, api.EventTypeNormal, api.EventReasonDeletingLoadBalancer, api.EventReasonDeletingLoadBalancerDesc)
 			if err := s.balancer.EnsureLoadBalancerDeleted(s.loadBalancerName(service), s.zone.Region); err != nil {
 				return err, retryable
 			}
-			s.eventRecorder.Event(service, api.EventTypeNormal, "DeletedLoadBalancer", "Deleted load balancer")
+			s.eventRecorder.Event(service, api.EventTypeNormal, api.EventReasonDeletedLoadBalancer, api.EventReasonDeletedLoadBalancerDesc)
 		}
 
 		service.Status.LoadBalancer = api.LoadBalancerStatus{}
@@ -340,13 +340,13 @@ func (s *ServiceController) createLoadBalancerIfNeeded(namespacedName types.Name
 		// TODO: We could do a dry-run here if wanted to avoid the spurious cloud-calls & events when we restart
 
 		// The load balancer doesn't exist yet, so create it.
-		s.eventRecorder.Event(service, api.EventTypeNormal, "CreatingLoadBalancer", "Creating load balancer")
+		s.eventRecorder.Event(service, api.EventTypeNormal, api.EventReasonCreatingLoadBalancer, api.EventReasonCreatingLoadBalancerDesc)
 
 		err := s.createLoadBalancer(service, namespacedName)
 		if err != nil {
 			return fmt.Errorf("Failed to create load balancer for service %s: %v", namespacedName, err), retryable
 		}
-		s.eventRecorder.Event(service, api.EventTypeNormal, "CreatedLoadBalancer", "Created load balancer")
+		s.eventRecorder.Event(service, api.EventTypeNormal, api.EventReasonCreatedLoadBalancer, api.EventReasonCreatedLoadBalancerDesc)
 	}
 
 	// Write the state if changed
@@ -730,7 +730,7 @@ func (s *ServiceController) lockedUpdateLoadBalancerHosts(service *api.Service, 
 	name := cloudprovider.GetLoadBalancerName(service)
 	err := s.balancer.UpdateLoadBalancer(name, s.zone.Region, hosts)
 	if err == nil {
-		s.eventRecorder.Event(service, api.EventTypeNormal, "UpdatedLoadBalancer", "Updated load balancer with new hosts")
+		s.eventRecorder.Event(service, api.EventTypeNormal, api.EventReasonUpdatedLoadBalancer, api.EventReasonUpdatedLoadBalancerDesc)
 		return nil
 	}
 

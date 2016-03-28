@@ -378,5 +378,5 @@ func tryIptablesProxy(iptver iptables.IptablesVersioner, kcompat iptables.Kernel
 }
 
 func (s *ProxyServer) birthCry() {
-	s.Recorder.Eventf(s.Config.NodeRef, api.EventTypeNormal, "Starting", "Starting kube-proxy.")
+	s.Recorder.Eventf(s.Config.NodeRef, api.EventTypeNormal, api.EventReasonStarting, "Starting kube-proxy.")
 }

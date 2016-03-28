@@ -139,7 +139,7 @@ func TestEventf(t *testing.T) {
 		{
 			obj:        testRef,
 			eventtype:  api.EventTypeNormal,
-			reason:     "Started",
+			reason:     api.EventReasonStarted,
 			messageFmt: "some verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
@@ -167,7 +167,7 @@ func TestEventf(t *testing.T) {
 		{
 			obj:        testPod,
 			eventtype:  api.EventTypeNormal,
-			reason:     "Killed",
+			reason:     api.EventReasonKilled,
 			messageFmt: "some other verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
@@ -182,7 +182,7 @@ func TestEventf(t *testing.T) {
 					UID:        "bar",
 					APIVersion: "version",
 				},
-				Reason:  "Killed",
+				Reason:  api.EventReasonKilled,
 				Message: "some other verbose message: 1",
 				Source:  api.EventSource{Component: "eventTest"},
 				Count:   1,
@@ -194,7 +194,7 @@ func TestEventf(t *testing.T) {
 		{
 			obj:        testRef,
 			eventtype:  api.EventTypeNormal,
-			reason:     "Started",
+			reason:     api.EventReasonStarted,
 			messageFmt: "some verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
@@ -210,7 +210,7 @@ func TestEventf(t *testing.T) {
 					APIVersion: "version",
 					FieldPath:  "spec.containers[2]",
 				},
-				Reason:  "Started",
+				Reason:  api.EventReasonStarted,
 				Message: "some verbose message: 1",
 				Source:  api.EventSource{Component: "eventTest"},
 				Count:   2,
@@ -222,7 +222,7 @@ func TestEventf(t *testing.T) {
 		{
 			obj:        testRef2,
 			eventtype:  api.EventTypeNormal,
-			reason:     "Started",
+			reason:     api.EventReasonStarted,
 			messageFmt: "some verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
@@ -238,7 +238,7 @@ func TestEventf(t *testing.T) {
 					APIVersion: "version",
 					FieldPath:  "spec.containers[3]",
 				},
-				Reason:  "Started",
+				Reason:  api.EventReasonStarted,
 				Message: "some verbose message: 1",
 				Source:  api.EventSource{Component: "eventTest"},
 				Count:   1,
@@ -250,7 +250,7 @@ func TestEventf(t *testing.T) {
 		{
 			obj:        testRef,
 			eventtype:  api.EventTypeNormal,
-			reason:     "Started",
+			reason:     api.EventReasonStarted,
 			messageFmt: "some verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
@@ -266,7 +266,7 @@ func TestEventf(t *testing.T) {
 					APIVersion: "version",
 					FieldPath:  "spec.containers[2]",
 				},
-				Reason:  "Started",
+				Reason:  api.EventReasonStarted,
 				Message: "some verbose message: 1",
 				Source:  api.EventSource{Component: "eventTest"},
 				Count:   3,
@@ -278,7 +278,7 @@ func TestEventf(t *testing.T) {
 		{
 			obj:        testRef2,
 			eventtype:  api.EventTypeNormal,
-			reason:     "Stopped",
+			reason:     api.EventReasonStopped,
 			messageFmt: "some verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
@@ -294,7 +294,7 @@ func TestEventf(t *testing.T) {
 					APIVersion: "version",
 					FieldPath:  "spec.containers[3]",
 				},
-				Reason:  "Stopped",
+				Reason:  api.EventReasonStopped,
 				Message: "some verbose message: 1",
 				Source:  api.EventSource{Component: "eventTest"},
 				Count:   1,
@@ -306,7 +306,7 @@ func TestEventf(t *testing.T) {
 		{
 			obj:        testRef2,
 			eventtype:  api.EventTypeNormal,
-			reason:     "Stopped",
+			reason:     api.EventReasonStopped,
 			messageFmt: "some verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
@@ -322,7 +322,7 @@ func TestEventf(t *testing.T) {
 					APIVersion: "version",
 					FieldPath:  "spec.containers[3]",
 				},
-				Reason:  "Stopped",
+				Reason:  api.EventReasonStopped,
 				Message: "some verbose message: 1",
 				Source:  api.EventSource{Component: "eventTest"},
 				Count:   2,
@@ -517,7 +517,7 @@ func TestEventfNoNamespace(t *testing.T) {
 		{
 			obj:        testRef,
 			eventtype:  api.EventTypeNormal,
-			reason:     "Started",
+			reason:     api.EventReasonStarted,
 			messageFmt: "some verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
@@ -533,7 +533,7 @@ func TestEventfNoNamespace(t *testing.T) {
 					APIVersion: "version",
 					FieldPath:  "spec.containers[2]",
 				},
-				Reason:  "Started",
+				Reason:  api.EventReasonStarted,
 				Message: "some verbose message: 1",
 				Source:  api.EventSource{Component: "eventTest"},
 				Count:   1,
@@ -626,7 +626,7 @@ func TestMultiSinkCache(t *testing.T) {
 		{
 			obj:        testRef,
 			eventtype:  api.EventTypeNormal,
-			reason:     "Started",
+			reason:     api.EventReasonStarted,
 			messageFmt: "some verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
@@ -642,7 +642,7 @@ func TestMultiSinkCache(t *testing.T) {
 					APIVersion: "version",
 					FieldPath:  "spec.containers[2]",
 				},
-				Reason:  "Started",
+				Reason:  api.EventReasonStarted,
 				Message: "some verbose message: 1",
 				Source:  api.EventSource{Component: "eventTest"},
 				Count:   1,
@@ -654,7 +654,7 @@ func TestMultiSinkCache(t *testing.T) {
 		{
 			obj:        testPod,
 			eventtype:  api.EventTypeNormal,
-			reason:     "Killed",
+			reason:     api.EventReasonKilled,
 			messageFmt: "some other verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
@@ -669,7 +669,7 @@ func TestMultiSinkCache(t *testing.T) {
 					UID:        "bar",
 					APIVersion: "version",
 				},
-				Reason:  "Killed",
+				Reason:  api.EventReasonKilled,
 				Message: "some other verbose message: 1",
 				Source:  api.EventSource{Component: "eventTest"},
 				Count:   1,
@@ -681,7 +681,7 @@ func TestMultiSinkCache(t *testing.T) {
 		{
 			obj:        testRef,
 			eventtype:  api.EventTypeNormal,
-			reason:     "Started",
+			reason:     api.EventReasonStarted,
 			messageFmt: "some verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
@@ -697,7 +697,7 @@ func TestMultiSinkCache(t *testing.T) {
 					APIVersion: "version",
 					FieldPath:  "spec.containers[2]",
 				},
-				Reason:  "Started",
+				Reason:  api.EventReasonStarted,
 				Message: "some verbose message: 1",
 				Source:  api.EventSource{Component: "eventTest"},
 				Count:   2,
@@ -709,7 +709,7 @@ func TestMultiSinkCache(t *testing.T) {
 		{
 			obj:        testRef2,
 			eventtype:  api.EventTypeNormal,
-			reason:     "Started",
+			reason:     api.EventReasonStarted,
 			messageFmt: "some verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
@@ -725,7 +725,7 @@ func TestMultiSinkCache(t *testing.T) {
 					APIVersion: "version",
 					FieldPath:  "spec.containers[3]",
 				},
-				Reason:  "Started",
+				Reason:  api.EventReasonStarted,
 				Message: "some verbose message: 1",
 				Source:  api.EventSource{Component: "eventTest"},
 				Count:   1,
@@ -737,7 +737,7 @@ func TestMultiSinkCache(t *testing.T) {
 		{
 			obj:        testRef,
 			eventtype:  api.EventTypeNormal,
-			reason:     "Started",
+			reason:     api.EventReasonStarted,
 			messageFmt: "some verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
@@ -753,7 +753,7 @@ func TestMultiSinkCache(t *testing.T) {
 					APIVersion: "version",
 					FieldPath:  "spec.containers[2]",
 				},
-				Reason:  "Started",
+				Reason:  api.EventReasonStarted,
 				Message: "some verbose message: 1",
 				Source:  api.EventSource{Component: "eventTest"},
 				Count:   3,
@@ -765,7 +765,7 @@ func TestMultiSinkCache(t *testing.T) {
 		{
 			obj:        testRef2,
 			eventtype:  api.EventTypeNormal,
-			reason:     "Stopped",
+			reason:     api.EventReasonStopped,
 			messageFmt: "some verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
@@ -781,7 +781,7 @@ func TestMultiSinkCache(t *testing.T) {
 					APIVersion: "version",
 					FieldPath:  "spec.containers[3]",
 				},
-				Reason:  "Stopped",
+				Reason:  api.EventReasonStopped,
 				Message: "some verbose message: 1",
 				Source:  api.EventSource{Component: "eventTest"},
 				Count:   1,
@@ -793,7 +793,7 @@ func TestMultiSinkCache(t *testing.T) {
 		{
 			obj:        testRef2,
 			eventtype:  api.EventTypeNormal,
-			reason:     "Stopped",
+			reason:     api.EventReasonStopped,
 			messageFmt: "some verbose message: %v",
 			elements:   []interface{}{1},
 			expect: &api.Event{
@@ -809,7 +809,7 @@ func TestMultiSinkCache(t *testing.T) {
 					APIVersion: "version",
 					FieldPath:  "spec.containers[3]",
 				},
-				Reason:  "Stopped",
+				Reason:  api.EventReasonStopped,
 				Message: "some verbose message: 1",
 				Source:  api.EventSource{Component: "eventTest"},
 				Count:   2,

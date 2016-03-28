@@ -360,7 +360,7 @@ func (jm *JobController) syncJob(key string) error {
 		failed += active
 		active = 0
 		job.Status.Conditions = append(job.Status.Conditions, newCondition(extensions.JobFailed, "DeadlineExceeded", "Job was active longer than specified deadline"))
-		jm.recorder.Event(&job, api.EventTypeNormal, "DeadlineExceeded", "Job was active longer than specified deadline")
+		jm.recorder.Event(&job, api.EventTypeNormal, api.EventReasonDeadlineExceeded, api.EventReasonDeadlineExceededDesc)
 	} else {
 		if jobNeedsSync {
 			active = jm.manageJob(activePods, succeeded, &job)
@@ -385,10 +385,10 @@ func (jm *JobController) syncJob(key string) error {
 			if completions >= *job.Spec.Completions {
 				complete = true
 				if active > 0 {
-					jm.recorder.Event(&job, api.EventTypeWarning, "TooManyActivePods", "Too many active pods running after completion count reached")
+					jm.recorder.Event(&job, api.EventTypeWarning, api.EventReasonTooManyActivePods, api.EventReasonTooManyActivePodsDesc)
 				}
 				if completions > *job.Spec.Completions {
-					jm.recorder.Event(&job, api.EventTypeWarning, "TooManySucceededPods", "Too many succeeded pods running after completion count reached")
+					jm.recorder.Event(&job, api.EventTypeWarning, api.EventReasonTooManySucceededPods, api.EventReasonTooManySucceededPodsDesc)
 				}
 			}
 		}
